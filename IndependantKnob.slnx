@@ -2,5 +2,8 @@
   <Folder Name="/Solution Items/">
     <File Path=".gitignore" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/IndependantKnob.Tests/IndependantKnob.Tests.csproj" />
+  </Folder>
   <Project Path="IndependantKnob.csproj" />
 </Solution>
