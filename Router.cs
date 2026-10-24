@@ -49,7 +49,7 @@ public static class Router
         string? app = s.Mode switch
         {
             TargetMode.Cycle => Selected(s, st),
-            TargetMode.Focused => s.Apps.FirstOrDefault(a => Same(a.ProcessName, foreground))?.ProcessName ?? s.DefaultApp,
+            TargetMode.Focused => s.Apps.FirstOrDefault(a => Settings.Same(a.ProcessName, foreground))?.ProcessName ?? s.DefaultApp,
             _ => s.Apps.FirstOrDefault(a => a.Modifier == e.Modifier)?.ProcessName,
         };
         var kind = e.Kind switch
@@ -67,6 +67,4 @@ public static class Router
 
     static KnobAction Act(ActionKind kind, string? app, Func<string, bool> hasSession) =>
         app != null && hasSession(app) ? new KnobAction(kind, app) : Pass;
-
-    static bool Same(string a, string? b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 }

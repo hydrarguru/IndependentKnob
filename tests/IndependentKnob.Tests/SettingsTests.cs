@@ -75,6 +75,41 @@ public class SettingsTests : IDisposable
     }
 
     [Fact]
+    public void Hand_edited_nulls_are_cleaned_up_on_load()
+    {
+        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path)!);
+        File.WriteAllText(Path, """
+            { "Apps": [null, { "ProcessName": null }, { "ProcessName": "Spotify" }], "IgnoredApps": null }
+            """);
+
+        var s = Settings.Load(Path);
+        Assert.Equal([new AppEntry("Spotify", "Spotify")], s.Apps); // missing display name falls back to the process name
+        Assert.Empty(s.IgnoredApps);
+
+        File.WriteAllText(Path, """{ "Apps": null }""");
+        Assert.Empty(Settings.Load(Path).Apps);
+    }
+
+    [Fact]
+    public void Unreadable_file_gives_defaults_instead_of_crashing()
+    {
+        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path)!);
+        File.WriteAllText(Path, "{}");
+        using (File.Open(Path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) // locked by "another program"
+            Assert.Empty(Settings.Load(Path).Apps);
+    }
+
+    [Fact]
+    public void Adding_an_app_twice_lists_it_once_and_un_ignores_it()
+    {
+        var s = new Settings { IgnoredApps = ["discord"] };
+        s.AddApp("Discord", "Discord");
+        s.AddApp("discord", "Discord");
+        Assert.Single(s.Apps);
+        Assert.Empty(s.IgnoredApps);
+    }
+
+    [Fact]
     public void Corrupt_file_gives_defaults_and_is_backed_up()
     {
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path)!);

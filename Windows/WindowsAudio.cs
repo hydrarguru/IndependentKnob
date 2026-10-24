@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using NAudio.CoreAudioApi;
 using NAudio.CoreAudioApi.Interfaces;
@@ -18,8 +19,6 @@ public sealed class WindowsAudio : IAudio
             .Select(x => (x.Name, string.IsNullOrEmpty(x.Session.DisplayName) ? x.Name : x.Session.DisplayName))
             .DistinctBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
             .ToList());
-
-    public bool HasSession(string app) => With(app, s => s.Count > 0);
 
     public AudioState? TryGet(string app) => With(app, s =>
         s.Count == 0 ? null : new AudioState(s[0].Session.SimpleAudioVolume.Volume, s[0].Session.SimpleAudioVolume.Mute));
@@ -53,32 +52,38 @@ public sealed class WindowsAudio : IAudio
     static T With<T>(string? app, Func<List<(AudioSessionControl Session, string Name)>, T> f)
     {
         var list = new List<(AudioSessionControl Session, string Name)>();
-        using var enumerator = new MMDeviceEnumerator();
-        if (!enumerator.TryGetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia, out var device)) return f(list);
-        using (device)
+        try
         {
-            var manager = device.AudioSessionManager;
-            manager.RefreshSessions();
-            var sessions = manager.Sessions;
-            try
+            using var enumerator = new MMDeviceEnumerator();
+            if (!enumerator.TryGetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia, out var device)) return f(list);
+            using (device)
             {
+                var manager = device.AudioSessionManager;
+                manager.RefreshSessions();
+                var sessions = manager.Sessions;
                 for (int i = 0; i < sessions.Count; i++)
                 {
                     var session = sessions[i];
                     string? name = session.IsSystemSoundsSession || session.State == AudioSessionState.AudioSessionStateExpired
                         ? null
                         : ProcessName(session.GetProcessID);
-                    if (name != null && (app == null || string.Equals(name, app, StringComparison.OrdinalIgnoreCase)))
+                    if (name != null && (app == null || Settings.Same(name, app)))
                         list.Add((session, name));
                     else
                         session.Dispose();
                 }
                 return f(list);
             }
-            finally
-            {
-                foreach (var (session, _) in list) session.Dispose();
-            }
+        }
+        catch (COMException)
+        {
+            // The output device went away mid-call (unplugged, switched, audio service restarting):
+            // treat it as nothing playing this time instead of crashing.
+            return f([]);
+        }
+        finally
+        {
+            foreach (var (session, _) in list) session.Dispose();
         }
     }
 
@@ -89,9 +94,10 @@ public sealed class WindowsAudio : IAudio
             using var process = Process.GetProcessById((int)pid);
             return process.ProcessName;
         }
-        catch (ArgumentException)
+        // ArgumentException: already gone. InvalidOperationException: exited between the lookup and reading its name.
+        catch (Exception e) when (e is ArgumentException or InvalidOperationException)
         {
-            return null; // process already exited
+            return null;
         }
     }
 }

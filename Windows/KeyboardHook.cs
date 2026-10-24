@@ -10,7 +10,7 @@ namespace IndependentKnob.Windows;
 // Low-level keyboard hook for the volume media keys. Must be created on a thread with a message
 // loop (the Avalonia UI thread). Windows drops hooks whose callback takes over ~1 s, so handlers stay fast.
 [SupportedOSPlatform("windows")]
-public sealed unsafe class KeyboardHook : IKnobInput, IDisposable
+public sealed unsafe class KeyboardHook : IKnobInput
 {
     // The callback is a static function pointer (nothing for the GC to collect), so it finds the hook here.
     static KeyboardHook? current;

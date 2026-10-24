@@ -67,7 +67,7 @@ public partial class MainWindow : Window
         // Fresh list every time it opens, so newly started apps show up.
         AddBox.DropDownOpened += (_, _) =>
         {
-            available = (audio?.Sessions() ?? []).Where(s => !settings.Apps.Any(a => Same(a.ProcessName, s.ProcessName))).ToList();
+            available = (audio?.Sessions() ?? []).Where(s => !settings.Apps.Any(a => Settings.Same(a.ProcessName, s.ProcessName))).ToList();
             AddBox.ItemsSource = available;
         };
         AddBox.SelectionChanged += (_, _) => AddButton.IsEnabled = AddBox.SelectedIndex >= 0;
@@ -75,11 +75,7 @@ public partial class MainWindow : Window
         {
             var (process, display) = available[AddBox.SelectedIndex];
             AddBox.SelectedIndex = -1;
-            Edit(() =>
-            {
-                settings.Apps.Add(new AppEntry(process, display));
-                settings.IgnoredApps.RemoveAll(i => Same(i, process));
-            });
+            Edit(() => settings.AddApp(process, display));
         };
 
         Refresh();
@@ -120,7 +116,7 @@ public partial class MainWindow : Window
         FocusedPanel.IsVisible = settings.Mode == TargetMode.Focused;
 
         DefaultAppBox.ItemsSource = settings.Apps.Select(a => a.DisplayName).Prepend("Nothing (use Windows volume)").ToList();
-        DefaultAppBox.SelectedIndex = 1 + settings.Apps.FindIndex(a => Same(a.ProcessName, settings.DefaultApp)); // not found -> 0
+        DefaultAppBox.SelectedIndex = 1 + settings.Apps.FindIndex(a => Settings.Same(a.ProcessName, settings.DefaultApp)); // not found -> 0
 
         AppList.Children.Clear();
         foreach (var app in settings.Apps) AppList.Children.Add(Row(app));
@@ -149,7 +145,7 @@ public partial class MainWindow : Window
         remove.Click += (_, _) => Edit(() =>
         {
             settings.Apps.Remove(app);
-            if (Same(app.ProcessName, settings.DefaultApp)) settings.DefaultApp = null;
+            if (Settings.Same(app.ProcessName, settings.DefaultApp)) settings.DefaultApp = null;
             // Otherwise the popup would offer it again within seconds.
             settings.IgnoredApps.Add(app.ProcessName);
         });
@@ -207,7 +203,6 @@ public partial class MainWindow : Window
         return button;
     }
 
-    static string Label(string process, string display) => Same(process, display) ? display : $"{display} ({process})";
+    static string Label(string process, string display) => Settings.Same(process, display) ? display : $"{display} ({process})";
 
-    static bool Same(string a, string? b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -42,7 +43,16 @@ public class Settings
         return null;
     }
 
-    static bool Same(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+    // The one rule for "same app": process names, ignoring case. Used everywhere apps are matched.
+    public static bool Same(string? a, string? b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+
+    // The Add dropdown and the "add this app?" popup each work from a list built earlier,
+    // so both add through here to never list an app twice. Adding also un-ignores it.
+    public void AddApp(string process, string display)
+    {
+        if (!Apps.Exists(a => Same(a.ProcessName, process))) Apps.Add(new AppEntry(process, display));
+        IgnoredApps.RemoveAll(i => Same(i, process));
+    }
 
     public static string DefaultPath { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "IndependentKnob", "settings.json");
@@ -74,12 +84,23 @@ public class Settings
         if (!File.Exists(path)) return new Settings();
         try
         {
-            return JsonSerializer.Deserialize<Settings>(File.ReadAllText(path), Json) ?? new Settings();
+            var settings = JsonSerializer.Deserialize<Settings>(File.ReadAllText(path), Json) ?? new Settings();
+            // Valid JSON can still hold nulls a hand-edit leaves behind ("Apps": null, [null], a missing name).
+            settings.Apps = (settings.Apps ?? []).Where(a => a?.ProcessName != null)
+                .Select(a => a with { DisplayName = a.DisplayName ?? a.ProcessName }).ToList();
+            settings.IgnoredApps = (settings.IgnoredApps ?? []).Where(i => i != null).ToList();
+            return settings;
         }
         catch (JsonException)
         {
             // Keep the user's broken file so the next Save doesn't destroy it.
             File.Copy(path, path + ".bak", overwrite: true);
+            return new Settings();
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            // Locked or not readable: start with defaults instead of crashing. Can't back it up either.
+            // shortcut: a later Save replaces the unreadable file; add a "don't save" flag if locked files show up.
             return new Settings();
         }
     }

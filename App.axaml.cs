@@ -23,11 +23,9 @@ public partial class App : Application
     IAppIcons? icons;
     OverlayWindow? overlay;
     MainWindow? window;
-    // Cycle + DoublePress/LongPress: the press waits here while it's timed.
-    // DoublePress: a second press before the timer fires mutes. LongPress: still held when it fires mutes.
+    // Times presses for Cycle mode's double-press / press-and-hold; PressTiming decides what they mean.
     readonly DispatcherTimer pressTimer = new();
-    KnobEvent? pendingPress;
-    static readonly TimeSpan DoublePressWindow = TimeSpan.FromMilliseconds(300), HoldTime = TimeSpan.FromMilliseconds(500);
+    PressTiming? presses;
     // Looks for audio apps that aren't listed yet and asks about them, one popup at a time.
     readonly DispatcherTimer scanTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     PromptWindow? prompt;
@@ -63,16 +61,12 @@ public partial class App : Application
                 icons = new WindowsIcons();
                 overlay = new OverlayWindow { Audio = audio };
 
-                var hook = new KeyboardHook();
-                hook.Knob += OnKnob;
-                IDisposable unhook = hook; // via the interface: the analyzer can't see the IsWindows guard inside the lambda
-                desktop.Exit += (_, _) => unhook.Dispose();
-                pressTimer.Tick += (_, _) =>
-                {
-                    pressTimer.Stop();
-                    // DoublePress: no second press came, so switch app. LongPress: still held, so mute.
-                    if (pendingPress != null) Apply(pendingPress, timedMute: settings.MuteTrigger == MuteTrigger.LongPress);
-                };
+                presses = new PressTiming(settings, Apply, AnyListedPlaying,
+                    startTimer: interval => { pressTimer.Interval = interval; pressTimer.Start(); }, stopTimer: pressTimer.Stop);
+                pressTimer.Tick += (_, _) => presses.Expired();
+                IKnobInput knob = new KeyboardHook();
+                knob.Knob += presses.Knob;
+                desktop.Exit += (_, _) => knob.Dispose();
                 scanTimer.Tick += (_, _) => Suggest();
                 scanTimer.Start();
             }
@@ -93,8 +87,17 @@ public partial class App : Application
         window.Activate();
     }
 
-    string DisplayName(string app) =>
-        settings.Apps.FirstOrDefault(a => string.Equals(a.ProcessName, app, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? app;
+    string DisplayName(string app) => settings.Apps.FirstOrDefault(a => Settings.Same(a.ProcessName, app))?.DisplayName ?? app;
+
+    // Process names with audio right now: one scan of the sound streams, checked as often as needed.
+    // The keyboard hook must answer fast (Windows silently drops a slow hook), so it never scans once per app.
+    HashSet<string> Playing() => audio!.Sessions().Select(s => s.ProcessName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    bool AnyListedPlaying()
+    {
+        var playing = Playing();
+        return settings.Apps.Exists(a => playing.Contains(a.ProcessName));
+    }
 
     // Second line says what the knob controls: Cycle mode's selected app, or what the other modes follow.
     void UpdateTrayTip()
@@ -113,7 +116,8 @@ public partial class App : Application
     void PreviewOverlay()
     {
         if (overlay == null) return; // no overlay on non-Windows yet
-        var app = settings.Apps.FirstOrDefault(a => audio!.HasSession(a.ProcessName));
+        var playing = Playing();
+        var app = settings.Apps.FirstOrDefault(a => playing.Contains(a.ProcessName));
         if (app != null && audio!.TryGet(app.ProcessName) is { } state)
             overlay.ShowState(app.DisplayName, app.ProcessName, state, icons?.TryGet(app.ProcessName), settings.OverlayPosition, settings.OverlayColor);
         else // no process name: dragging the sample's slider changes nothing
@@ -124,7 +128,7 @@ public partial class App : Application
     {
         if (prompt != null || settings.NextSuggestion(audio!.Sessions(), notNow) is not { } app) return;
         prompt = new PromptWindow(app.DisplayName);
-        prompt.AddButton.Click += (_, _) => Answer(() => settings.Apps.Add(new AppEntry(app.ProcessName, app.DisplayName)));
+        prompt.AddButton.Click += (_, _) => Answer(() => settings.AddApp(app.ProcessName, app.DisplayName));
         prompt.NotNowButton.Click += (_, _) => Answer(() => notNow.Add(app.ProcessName));
         prompt.NeverButton.Click += (_, _) => Answer(() => settings.IgnoredApps.Add(app.ProcessName));
         prompt.Closed += (_, _) => prompt = null;
@@ -144,47 +148,16 @@ public partial class App : Application
     void OnExit(object? sender, EventArgs e) =>
         (ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown();
 
-    // Runs inside the keyboard hook: returns true to swallow the key.
-    bool OnKnob(KnobEvent e)
-    {
-        if (e.Kind == KnobKind.Release)
-        {
-            // LongPress: let go before the hold time, so it was a short press: switch app.
-            if (settings.MuteTrigger == MuteTrigger.LongPress && pressTimer.IsEnabled)
-            {
-                pressTimer.Stop();
-                Apply(pendingPress!, timedMute: false);
-            }
-            return false; // key-ups are swallowed or not to match their key-down; the hook decides
-        }
-
-        if (settings.Mode == TargetMode.Cycle && e.Kind == KnobKind.Press && settings.MuteTrigger != MuteTrigger.ModifierPress
-            && Router.Active(settings, e))
-        {
-            if (pressTimer.IsEnabled) // only DoublePress gets here: the hook folds a held button's repeats into one press
-            {
-                pressTimer.Stop();
-                return Apply(e, timedMute: true);
-            }
-            // The hook must answer now, before we know what kind of press this is: swallow only if there's an app to act on.
-            if (!settings.Apps.Any(a => audio!.HasSession(a.ProcessName))) return false;
-            pendingPress = e;
-            pressTimer.Interval = settings.MuteTrigger == MuteTrigger.LongPress ? HoldTime : DoublePressWindow;
-            pressTimer.Start();
-            return true;
-        }
-        return Apply(e, timedMute: false);
-    }
-
+    // Acts on a knob event (via PressTiming, mostly inside the keyboard hook): returns true to swallow the key.
     bool Apply(KnobEvent e, bool timedMute)
     {
-        (var action, state) = Router.Route(settings, state, e, audio!.HasSession, foreground!.ProcessName(), timedMute);
+        (var action, state) = Router.Route(settings, state, e, Playing().Contains, foreground!.ProcessName(), timedMute);
         AudioState? result = action.Kind switch
         {
-            ActionKind.VolumeUp => audio.TryAdjust(action.App!, Step),
-            ActionKind.VolumeDown => audio.TryAdjust(action.App!, -Step),
-            ActionKind.ToggleMute => audio.TryToggleMute(action.App!),
-            ActionKind.CycleNext => audio.TryGet(action.App!),
+            ActionKind.VolumeUp => audio!.TryAdjust(action.App!, Step),
+            ActionKind.VolumeDown => audio!.TryAdjust(action.App!, -Step),
+            ActionKind.ToggleMute => audio!.TryToggleMute(action.App!),
+            ActionKind.CycleNext => audio!.TryGet(action.App!),
             _ => null,
         };
         if (action.Kind == ActionKind.CycleNext) Dispatcher.UIThread.Post(UpdateTrayTip);

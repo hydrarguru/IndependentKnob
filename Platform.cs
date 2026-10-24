@@ -20,7 +20,6 @@ public record AudioState(float Volume, bool Muted);
 public interface IAudio
 {
     IReadOnlyList<(string ProcessName, string DisplayName)> Sessions();
-    bool HasSession(string app);
     AudioState? TryGet(string app);
     AudioState? TryAdjust(string app, float step);
     AudioState? TrySet(string app, float volume);
@@ -38,7 +37,8 @@ public interface IForeground
     string? ProcessName();
 }
 
-public interface IKnobInput
+// Disposing stops listening (and gives the keys back to the OS).
+public interface IKnobInput : IDisposable
 {
     // Return true to swallow the key, false to pass it on to Windows.
     event Func<KnobEvent, bool>? Knob;
