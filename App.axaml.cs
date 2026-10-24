@@ -34,6 +34,7 @@ public partial class App : Application
         {
             // Lives in the tray: no window at startup, and closing the window doesn't quit. Only tray Exit does.
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            settings = Settings.Load(Settings.DefaultPath);
 
             // Other platforms get the UI only until they have their own IAudio/IKnobInput.
             if (OperatingSystem.IsWindows())
@@ -41,10 +42,6 @@ public partial class App : Application
                 audio = new WindowsAudio();
                 foreground = new WindowsForeground();
                 overlay = new OverlayWindow();
-                settings = Settings.Load(Settings.DefaultPath);
-                // Temporary until the settings window (stage 5): edit settings.json, or get these defaults.
-                if (settings.Apps.Count == 0)
-                    settings.Apps = [new("Spotify", "Spotify"), new("chrome", "Chrome"), new("firefox", "Firefox"), new("msedge", "Edge"), new("Discord", "Discord")];
 
                 var hook = new KeyboardHook();
                 hook.Knob += OnKnob;
@@ -66,7 +63,7 @@ public partial class App : Application
     {
         if (window == null)
         {
-            window = new MainWindow();
+            window = new MainWindow(settings, audio);
             window.Closed += (_, _) => window = null;
         }
         window.Show();
