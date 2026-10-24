@@ -10,8 +10,8 @@ public enum TargetMode { Cycle, Focused, Modifiers }
 
 public enum MuteTrigger { DoublePress, ModifierPress, LongPress }
 
-// Screen edge the overlay sits on; Left/Right show it upright.
-public enum OverlayPosition { Bottom, Top, Left, Right }
+// Where the overlay sits: a screen edge or the middle; Left/Right show it upright.
+public enum OverlayPosition { Bottom, Top, Left, Right, Center }
 
 public record AppEntry(string ProcessName, string DisplayName, Modifier Modifier = Modifier.None);
 

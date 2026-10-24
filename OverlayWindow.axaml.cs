@@ -70,7 +70,8 @@ public partial class OverlayWindow : Window
 
         if (Screens.Primary is { } screen)
         {
-            // WorkingArea is in physical pixels, Width/Height in DIPs. Centered along the chosen edge, 48 DIPs in from it.
+            // WorkingArea is in physical pixels, Width/Height in DIPs. Centered along the chosen edge, 48 DIPs in from it,
+            // or in the middle of the screen.
             var area = screen.WorkingArea;
             double scale = screen.Scaling;
             int w = (int)(Width * scale), h = (int)(Height * scale), gap = (int)(48 * scale);
@@ -80,6 +81,7 @@ public partial class OverlayWindow : Window
                 OverlayPosition.Top => new PixelPoint(centerX, area.Y + gap),
                 OverlayPosition.Left => new PixelPoint(area.X + gap, centerY),
                 OverlayPosition.Right => new PixelPoint(area.Right - w - gap, centerY),
+                OverlayPosition.Center => new PixelPoint(centerX, centerY),
                 _ => new PixelPoint(centerX, area.Bottom - h - gap),
             };
         }

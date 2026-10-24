@@ -71,6 +71,7 @@
                     <ComboBoxItem>Top of the screen</ComboBoxItem>
                     <ComboBoxItem>Left side (upright)</ComboBoxItem>
                     <ComboBoxItem>Right side (upright)</ComboBoxItem>
+                    <ComboBoxItem>Center of the screen</ComboBoxItem>
                 </ComboBox>
             </StackPanel>
 
