@@ -20,6 +20,8 @@ public partial class MainWindow : Window
     readonly IAppIcons? icons;
     // Set by App: briefly shows the overlay at the current position.
     public Action? PreviewOverlay { get; init; }
+    // Set by App: called after every edit made in this window.
+    public Action? SettingsChanged { get; init; }
     List<(string ProcessName, string DisplayName)> available = [];
     // Set while Refresh writes the controls, so their change events don't count as user edits.
     bool refreshing;
@@ -73,6 +75,7 @@ public partial class MainWindow : Window
         if (refreshing) return;
         change();
         Changed(settings.TrySave(Settings.DefaultPath));
+        SettingsChanged?.Invoke();
     }
 
     // Also called by App when the "add this app?" popup changes the settings.

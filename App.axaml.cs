@@ -45,6 +45,7 @@ public partial class App : Application
             // Lives in the tray: no window at startup, and closing the window doesn't quit. Only tray Exit does.
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
             settings = Settings.Load(Settings.DefaultPath);
+            UpdateTrayTip();
 
             // A second copy of the app signals this instead of starting (see Program.Main).
             if (Program.OpenRequest is { } openRequest)
@@ -84,11 +85,27 @@ public partial class App : Application
     {
         if (window == null)
         {
-            window = new MainWindow(settings, audio, icons) { PreviewOverlay = PreviewOverlay };
+            window = new MainWindow(settings, audio, icons) { PreviewOverlay = PreviewOverlay, SettingsChanged = UpdateTrayTip };
             window.Closed += (_, _) => window = null;
         }
         window.Show();
         window.Activate();
+    }
+
+    string DisplayName(string app) =>
+        settings.Apps.FirstOrDefault(a => string.Equals(a.ProcessName, app, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? app;
+
+    // Second line says what the knob controls: Cycle mode's selected app, or what the other modes follow.
+    void UpdateTrayTip()
+    {
+        if (TrayIcon.GetIcons(this) is not [var tray, ..]) return;
+        string? target = settings.Mode switch
+        {
+            TargetMode.Cycle => Router.Selected(settings, state) is { } app ? DisplayName(app) : null,
+            TargetMode.Focused => "the app you're using",
+            _ => "the app for the key you hold",
+        };
+        tray.ToolTipText = target == null ? "IndependantKnob" : $"IndependantKnob\nControlling: {target}";
     }
 
     // Shows the overlay where it's now set to appear: with the first listed app that's playing, else a sample.
@@ -119,6 +136,7 @@ public partial class App : Application
         string? error = settings.TrySave(Settings.DefaultPath);
         if (error != null) Debug.WriteLine($"Couldn't save settings: {error}");
         window?.Changed(error);
+        UpdateTrayTip();
         prompt?.Close();
     }
 
@@ -168,9 +186,10 @@ public partial class App : Application
             ActionKind.CycleNext => audio.TryGet(action.App!),
             _ => null,
         };
+        if (action.Kind == ActionKind.CycleNext) Dispatcher.UIThread.Post(UpdateTrayTip);
         if (result != null)
         {
-            string name = settings.Apps.FirstOrDefault(a => string.Equals(a.ProcessName, action.App, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? action.App!;
+            string name = DisplayName(action.App!);
             string app = action.App!;
             // Posted, so the hook callback returns before the icon is looked up and the window is shown.
             Dispatcher.UIThread.Post(() => overlay!.ShowState(name, app, result, icons?.TryGet(app), settings.OverlayPosition));

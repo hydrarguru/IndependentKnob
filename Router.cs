@@ -61,7 +61,8 @@ public static class Router
         return (Act(kind, app, hasSession), st);
     }
 
-    static string? Selected(Settings s, RouterState st) =>
+    // Cycle mode's current app (process name); also shown in the tray tooltip.
+    public static string? Selected(Settings s, RouterState st) =>
         s.Apps.Count == 0 ? null : s.Apps[st.Selected % s.Apps.Count].ProcessName;
 
     static KnobAction Act(ActionKind kind, string? app, Func<string, bool> hasSession) =>
