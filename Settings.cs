@@ -8,7 +8,7 @@ namespace IndependantKnob;
 
 public enum TargetMode { Cycle, Focused, Modifiers }
 
-public enum MuteTrigger { DoublePress, ModifierPress }
+public enum MuteTrigger { DoublePress, ModifierPress, LongPress }
 
 public record AppEntry(string ProcessName, string DisplayName, Modifier Modifier = Modifier.None);
 

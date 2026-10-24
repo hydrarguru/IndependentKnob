@@ -18,6 +18,8 @@ public sealed unsafe class KeyboardHook : IKnobInput, IDisposable
     readonly nint handle;
     // Key-downs we swallowed; their key-ups are swallowed too so Windows never sees half a keypress.
     readonly HashSet<uint> swallowed = [];
+    bool pressHeld;
+    long lastPressDown;
 
     public event Func<KnobEvent, bool>? Knob;
 
@@ -58,22 +60,45 @@ public sealed unsafe class KeyboardHook : IKnobInput, IDisposable
             _ => null,
         };
         if (kind == null) return false;
-        if (message is WM_KEYUP or WM_SYSKEYUP) return swallowed.Remove(vk);
+        if (message is WM_KEYUP or WM_SYSKEYUP)
+        {
+            if (kind == KnobKind.Press && pressHeld)
+            {
+                pressHeld = false;
+                Raise(new KnobEvent(KnobKind.Release, HeldModifier()));
+            }
+            return swallowed.Remove(vk);
+        }
         if (message is not (WM_KEYDOWN or WM_SYSKEYDOWN)) return false;
 
-        bool swallow;
-        try
+        if (kind == KnobKind.Press)
         {
-            swallow = Knob?.Invoke(new KnobEvent(kind.Value, HeldModifier())) ?? false;
+            // A held button auto-repeats key-downs; that's still one press. Turning keeps its repeats, like Windows.
+            // Repeats come every ~30 ms, so the time check stops a lost key-up from blocking the button for good.
+            long now = Environment.TickCount64;
+            bool repeat = pressHeld && now - lastPressDown < 1000;
+            lastPressDown = now;
+            if (repeat) return swallowed.Contains(vk);
+            pressHeld = true;
         }
-        catch (Exception e)
-        {
-            // An exception escaping an UnmanagedCallersOnly method kills the process; let the key through instead.
-            System.Diagnostics.Debug.WriteLine($"Knob handler failed: {e}");
-            swallow = false;
-        }
+
+        bool swallow = Raise(new KnobEvent(kind.Value, HeldModifier()));
         if (swallow) swallowed.Add(vk);
         return swallow;
+    }
+
+    bool Raise(KnobEvent e)
+    {
+        try
+        {
+            return Knob?.Invoke(e) ?? false;
+        }
+        catch (Exception ex)
+        {
+            // An exception escaping an UnmanagedCallersOnly method kills the process; let the key through instead.
+            System.Diagnostics.Debug.WriteLine($"Knob handler failed: {ex}");
+            return false;
+        }
     }
 
     // GetAsyncKeyState, not GetKeyState: our thread doesn't get the keyboard messages, so its key state is stale.

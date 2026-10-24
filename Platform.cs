@@ -7,7 +7,8 @@ namespace IndependantKnob;
 [Flags]
 public enum Modifier { None = 0, Ctrl = 1, Shift = 2, Alt = 4 }
 
-public enum KnobKind { Up, Down, Press }
+// Release: the knob button was let go (for press-and-hold); it never reaches the Router.
+public enum KnobKind { Up, Down, Press, Release }
 
 public record KnobEvent(KnobKind Kind, Modifier Modifier = Modifier.None);
 

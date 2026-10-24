@@ -10,8 +10,8 @@ public class RouterTests
 
     static Func<string, bool> Playing(params string[] names) => n => names.Contains(n);
 
-    static KnobAction Run(Settings s, KnobEvent e, Func<string, bool> has, string? fg = null, int selected = 0, bool second = false) =>
-        Router.Route(s, new RouterState(selected), e, has, fg, second).Action;
+    static KnobAction Run(Settings s, KnobEvent e, Func<string, bool> has, string? fg = null, int selected = 0, bool timed = false) =>
+        Router.Route(s, new RouterState(selected), e, has, fg, timed).Action;
 
     [Fact]
     public void Cycle_turn_adjusts_selected_app()
@@ -47,8 +47,8 @@ public class RouterTests
     {
         var s = Make(TargetMode.Cycle, Spotify, Chrome);
         var has = Playing("Spotify", "chrome");
-        Assert.Equal(new KnobAction(ActionKind.ToggleMute, "Spotify"), Run(s, new(KnobKind.Press), has, second: true));
-        Assert.Equal(new KnobAction(ActionKind.CycleNext, "chrome"), Run(s, new(KnobKind.Press), has, second: false));
+        Assert.Equal(new KnobAction(ActionKind.ToggleMute, "Spotify"), Run(s, new(KnobKind.Press), has, timed: true));
+        Assert.Equal(new KnobAction(ActionKind.CycleNext, "chrome"), Run(s, new(KnobKind.Press), has, timed: false));
     }
 
     [Fact]
@@ -60,8 +60,19 @@ public class RouterTests
         var has = Playing("Spotify", "chrome");
         Assert.Equal(new KnobAction(ActionKind.ToggleMute, "Spotify"), Run(s, new(KnobKind.Press, Modifier.Alt), has));
         Assert.Equal(ActionKind.CycleNext, Run(s, new(KnobKind.Press), has).Kind);
-        // Double-press flag is ignored in modifier mode.
-        Assert.Equal(ActionKind.CycleNext, Run(s, new(KnobKind.Press), has, second: true).Kind);
+        // The timed (double/long press) flag is ignored in modifier mode.
+        Assert.Equal(ActionKind.CycleNext, Run(s, new(KnobKind.Press), has, timed: true).Kind);
+    }
+
+    [Fact]
+    public void Cycle_long_press_mutes_short_press_cycles_release_does_nothing()
+    {
+        var s = Make(TargetMode.Cycle, Spotify, Chrome);
+        s.MuteTrigger = MuteTrigger.LongPress;
+        var has = Playing("Spotify", "chrome");
+        Assert.Equal(new KnobAction(ActionKind.ToggleMute, "Spotify"), Run(s, new(KnobKind.Press), has, timed: true));
+        Assert.Equal(new KnobAction(ActionKind.CycleNext, "chrome"), Run(s, new(KnobKind.Press), has, timed: false));
+        Assert.Equal(ActionKind.PassThrough, Run(s, new(KnobKind.Release), has, timed: true).Kind);
     }
 
     [Fact]

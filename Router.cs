@@ -19,21 +19,21 @@ public static class Router
     public static bool Active(Settings s, KnobEvent e) =>
         s.Mode == TargetMode.Modifiers || (e.Modifier & s.ActivationModifier) == s.ActivationModifier;
 
-    // secondPressInWindow: Cycle + DoublePress only. The caller holds the first press for a short
-    // window and calls Route once: true if a second press arrived in time, false when the window ran out.
+    // timedMute: Cycle + DoublePress/LongPress only. The caller times the press and calls Route once:
+    // true for a double press or a press held long enough, false for a plain single press.
     public static (KnobAction Action, RouterState State) Route(
         Settings s, RouterState st, KnobEvent e, Func<string, bool> hasSession,
-        string? foreground, bool secondPressInWindow = false)
+        string? foreground, bool timedMute = false)
     {
-        if (!Active(s, e)) return (Pass, st);
+        if (e.Kind == KnobKind.Release || !Active(s, e)) return (Pass, st);
         // The activation key is consumed; what's left is what Modifier + press mute compares against.
         if (s.Mode != TargetMode.Modifiers) e = e with { Modifier = e.Modifier & ~s.ActivationModifier };
 
         if (s.Mode == TargetMode.Cycle && e.Kind == KnobKind.Press)
         {
-            bool mute = s.MuteTrigger == MuteTrigger.DoublePress
-                ? secondPressInWindow
-                : e.Modifier == s.MuteModifier;
+            bool mute = s.MuteTrigger == MuteTrigger.ModifierPress
+                ? e.Modifier == s.MuteModifier
+                : timedMute;
             if (mute) return (Act(ActionKind.ToggleMute, Selected(s, st), hasSession), st);
 
             // Skip apps that aren't playing; wraps back to the current app if it's the only one.

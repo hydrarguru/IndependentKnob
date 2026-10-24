@@ -22,9 +22,11 @@ public partial class App : Application
     IForeground? foreground;
     OverlayWindow? overlay;
     MainWindow? window;
-    // Cycle + DoublePress: the first press waits here; a second press inside the window mutes instead.
-    readonly DispatcherTimer pressTimer = new() { Interval = TimeSpan.FromMilliseconds(300) };
+    // Cycle + DoublePress/LongPress: the press waits here while it's timed.
+    // DoublePress: a second press before the timer fires mutes. LongPress: still held when it fires mutes.
+    readonly DispatcherTimer pressTimer = new();
     KnobEvent? pendingPress;
+    static readonly TimeSpan DoublePressWindow = TimeSpan.FromMilliseconds(300), HoldTime = TimeSpan.FromMilliseconds(500);
     // Looks for audio apps that aren't listed yet and asks about them, one popup at a time.
     readonly DispatcherTimer scanTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     PromptWindow? prompt;
@@ -64,7 +66,8 @@ public partial class App : Application
                 pressTimer.Tick += (_, _) =>
                 {
                     pressTimer.Stop();
-                    if (pendingPress != null) Apply(pendingPress, secondPress: false);
+                    // DoublePress: no second press came, so switch app. LongPress: still held, so mute.
+                    if (pendingPress != null) Apply(pendingPress, timedMute: settings.MuteTrigger == MuteTrigger.LongPress);
                 };
                 scanTimer.Tick += (_, _) => Suggest();
                 scanTimer.Start();
@@ -112,26 +115,38 @@ public partial class App : Application
     // Runs inside the keyboard hook: returns true to swallow the key.
     bool OnKnob(KnobEvent e)
     {
-        if (settings.Mode == TargetMode.Cycle && e.Kind == KnobKind.Press && settings.MuteTrigger == MuteTrigger.DoublePress
-            && Router.Active(settings, e))
+        if (e.Kind == KnobKind.Release)
         {
-            if (pressTimer.IsEnabled)
+            // LongPress: let go before the hold time, so it was a short press: switch app.
+            if (settings.MuteTrigger == MuteTrigger.LongPress && pressTimer.IsEnabled)
             {
                 pressTimer.Stop();
-                return Apply(e, secondPress: true);
+                Apply(pendingPress!, timedMute: false);
             }
-            // The hook must answer now, before we know if a second press is coming: swallow only if there's an app to act on.
+            return false; // key-ups are swallowed or not to match their key-down; the hook decides
+        }
+
+        if (settings.Mode == TargetMode.Cycle && e.Kind == KnobKind.Press && settings.MuteTrigger != MuteTrigger.ModifierPress
+            && Router.Active(settings, e))
+        {
+            if (pressTimer.IsEnabled) // only DoublePress gets here: the hook folds a held button's repeats into one press
+            {
+                pressTimer.Stop();
+                return Apply(e, timedMute: true);
+            }
+            // The hook must answer now, before we know what kind of press this is: swallow only if there's an app to act on.
             if (!settings.Apps.Any(a => audio!.HasSession(a.ProcessName))) return false;
             pendingPress = e;
+            pressTimer.Interval = settings.MuteTrigger == MuteTrigger.LongPress ? HoldTime : DoublePressWindow;
             pressTimer.Start();
             return true;
         }
-        return Apply(e, secondPress: false);
+        return Apply(e, timedMute: false);
     }
 
-    bool Apply(KnobEvent e, bool secondPress)
+    bool Apply(KnobEvent e, bool timedMute)
     {
-        (var action, state) = Router.Route(settings, state, e, audio!.HasSession, foreground!.ProcessName(), secondPress);
+        (var action, state) = Router.Route(settings, state, e, audio!.HasSession, foreground!.ProcessName(), timedMute);
         AudioState? result = action.Kind switch
         {
             ActionKind.VolumeUp => audio.TryAdjust(action.App!, Step),
