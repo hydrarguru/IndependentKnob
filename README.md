@@ -24,11 +24,15 @@ Windows only for now. Built with C#, .NET 10 and [Avalonia](https://avaloniaui.n
 - **Suggests apps**: when an app that isn't on your list starts playing audio, a small popup asks whether to add it (Add / Not now / Never).
 - **Tray app**: no window at startup. The tray tooltip shows which app the knob controls, and starting the app a second time opens the settings window of the copy that's already running.
 
+## Download
+
+Get `IndependentKnob.exe` from the [Releases](../../releases) page. It's a single file that runs without installing .NET: start it, and it appears in the system tray.
+
 ## Requirements
 
 - Windows 10 or 11
 - A keyboard whose knob sends the standard volume keys (Volume Up / Volume Down / Mute). Most do.
-- [.NET 10 SDK](https://dotnet.microsoft.com/download) to build
+- [.NET 10 SDK](https://dotnet.microsoft.com/download) to build it yourself (not needed for the release download)
 
 ## Build and run
 
