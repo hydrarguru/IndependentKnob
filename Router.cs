@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 
-namespace IndependantKnob;
+namespace IndependentKnob;
 
 public enum ActionKind { PassThrough, VolumeUp, VolumeDown, ToggleMute, CycleNext }
 

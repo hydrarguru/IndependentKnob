@@ -9,7 +9,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using DrawingIcon = System.Drawing.Icon;
 
-namespace IndependantKnob.Windows;
+namespace IndependentKnob.Windows;
 
 // Takes the first icon out of the app's .exe.
 [SupportedOSPlatform("windows")]

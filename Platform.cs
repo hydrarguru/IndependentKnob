@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Avalonia.Media;
 
-namespace IndependantKnob;
+namespace IndependentKnob;
 
 // Flags: a KnobEvent carries every modifier held, so e.g. hold-Ctrl plus Shift+press can be told apart.
 [Flags]

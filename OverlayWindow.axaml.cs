@@ -8,7 +8,7 @@ using Avalonia.Media;
 using Avalonia.Media.Transformation;
 using Avalonia.Threading;
 
-namespace IndependantKnob;
+namespace IndependentKnob;
 
 // Shows which app the knob changed and its new volume, bottom-center of the primary screen.
 // Showing it never takes focus, so turning the knob while typing doesn't interrupt anything.
@@ -56,9 +56,10 @@ public partial class OverlayWindow : Window
         };
     }
 
-    public void ShowState(string displayName, string processName, AudioState state, IImage? icon, OverlayPosition position)
+    public void ShowState(string displayName, string processName, AudioState state, IImage? icon, OverlayPosition position, string? color)
     {
         Arrange(upright: position is OverlayPosition.Left or OverlayPosition.Right);
+        SetColor(color);
         app = processName;
         AppIcon.Source = icon;
         AppIcon.IsVisible = icon != null;
@@ -135,6 +136,22 @@ public partial class OverlayWindow : Window
         Grid.SetColumn(control, cell.Column);
         Grid.SetRowSpan(control, cell.RowSpan);
         Grid.SetColumnSpan(control, cell.ColumnSpan);
+    }
+
+    // The Fluent slider's own brushes for the filled line and the dot, in every state, so hover and drag keep the colour.
+    static readonly string[] SliderBrushes =
+    [
+        "SliderTrackValueFill", "SliderTrackValueFillPointerOver", "SliderTrackValueFillPressed",
+        "SliderThumbBackground", "SliderThumbBackgroundPointerOver", "SliderThumbBackgroundPressed",
+    ];
+
+    // null (or an unreadable value) leaves the theme's Windows accent colour.
+    void SetColor(string? color)
+    {
+        Bar.Resources.Clear();
+        if (color == null || !Color.TryParse(color, out var parsed)) return;
+        var brush = new SolidColorBrush(parsed);
+        foreach (var key in SliderBrushes) Bar.Resources[key] = brush;
     }
 
     void ShowLevel(AudioState state)

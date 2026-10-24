@@ -3,8 +3,8 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="460" d:DesignHeight="520"
-        x:Class="IndependantKnob.MainWindow"
-        Title="IndependantKnob"
+        x:Class="IndependentKnob.MainWindow"
+        Title="IndependentKnob"
         Icon="/Assets/icon.ico"
         Width="460" Height="520" MinWidth="380" MinHeight="380">
     <Window.Resources>
@@ -106,6 +106,13 @@
                     <ComboBoxItem>Right (upright)</ComboBoxItem>
                     <ComboBoxItem>Center</ComboBoxItem>
                 </ComboBox>
+            </Grid>
+
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" SharedSizeGroup="Label" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                <TextBlock Classes="label" Text="Overlay colour" />
+                <!-- Filled from MainWindow.Colors. -->
+                <ComboBox x:Name="OverlayColorBox" Grid.Column="1" HorizontalAlignment="Stretch" />
             </Grid>
 
             <Separator Margin="0,6" />

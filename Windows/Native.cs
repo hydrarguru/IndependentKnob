@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace IndependantKnob.Windows;
+namespace IndependentKnob.Windows;
 
 internal static unsafe partial class Native
 {

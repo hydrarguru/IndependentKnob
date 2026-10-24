@@ -1,4 +1,4 @@
-namespace IndependantKnob.Tests;
+namespace IndependentKnob.Tests;
 
 public class SettingsTests : IDisposable
 {
@@ -28,6 +28,7 @@ public class SettingsTests : IDisposable
             IgnoredApps = ["explorer"],
             ActivationModifier = Modifier.Alt,
             OverlayPosition = OverlayPosition.Right,
+            OverlayColor = "#EC4899",
         };
         s.Save(Path);
 
@@ -41,6 +42,7 @@ public class SettingsTests : IDisposable
         Assert.Equal(["explorer"], loaded.IgnoredApps);
         Assert.Equal(Modifier.Alt, loaded.ActivationModifier);
         Assert.Equal(OverlayPosition.Right, loaded.OverlayPosition);
+        Assert.Equal("#EC4899", loaded.OverlayColor);
     }
 
     [Fact]
@@ -52,6 +54,24 @@ public class SettingsTests : IDisposable
 
         Assert.Equal(("Discord", "Discord"), s.NextSuggestion(sessions, notNow));
         Assert.Null(s.NextSuggestion(sessions[..3], notNow));
+    }
+
+    [Fact]
+    public void Old_settings_folder_is_moved_to_new_name_but_never_over_an_existing_one()
+    {
+        string old = System.IO.Path.Combine(dir, "IndependantKnob"), current = System.IO.Path.Combine(dir, "IndependentKnob");
+        Directory.CreateDirectory(old);
+        File.WriteAllText(System.IO.Path.Combine(old, "settings.json"), "old");
+
+        Settings.MoveFromOldName(dir);
+        Assert.False(Directory.Exists(old));
+        Assert.Equal("old", File.ReadAllText(System.IO.Path.Combine(current, "settings.json")));
+
+        Directory.CreateDirectory(old);
+        File.WriteAllText(System.IO.Path.Combine(old, "settings.json"), "older");
+        Settings.MoveFromOldName(dir);
+        Assert.Equal("old", File.ReadAllText(System.IO.Path.Combine(current, "settings.json")));
+        Assert.True(Directory.Exists(old));
     }
 
     [Fact]

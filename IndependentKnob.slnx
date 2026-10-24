@@ -3,7 +3,7 @@
     <File Path=".gitignore" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/IndependantKnob.Tests/IndependantKnob.Tests.csproj" />
+    <Project Path="tests/IndependentKnob.Tests/IndependentKnob.Tests.csproj" />
   </Folder>
-  <Project Path="IndependantKnob.csproj" />
+  <Project Path="IndependentKnob.csproj" />
 </Solution>

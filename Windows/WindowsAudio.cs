@@ -6,7 +6,7 @@ using System.Runtime.Versioning;
 using NAudio.CoreAudioApi;
 using NAudio.CoreAudioApi.Interfaces;
 
-namespace IndependantKnob.Windows;
+namespace IndependentKnob.Windows;
 
 // Per-app volume through the Core Audio session API on the default output device.
 // The device is looked up on every call, so switching speakers/headphones just works.

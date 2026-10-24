@@ -2,7 +2,7 @@
 using System;
 using System.Threading;
 
-namespace IndependantKnob;
+namespace IndependentKnob;
 
 class Program
 {
@@ -16,9 +16,9 @@ class Program
     public static void Main(string[] args)
     {
         // Created (or opened, if it exists) before the mutex check, so a second copy can't signal before it exists.
-        var openRequest = new EventWaitHandle(false, EventResetMode.AutoReset, @"Local\IndependantKnob.Open");
+        var openRequest = new EventWaitHandle(false, EventResetMode.AutoReset, @"Local\IndependentKnob.Open");
         // One copy per user session: a second keyboard hook would take the knob from the first.
-        using var mutex = new Mutex(true, @"Local\IndependantKnob", out bool first);
+        using var mutex = new Mutex(true, @"Local\IndependentKnob", out bool first);
         if (!first)
         {
             openRequest.Set(); // ask the running copy to show its window instead

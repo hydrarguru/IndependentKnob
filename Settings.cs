@@ -4,7 +4,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace IndependantKnob;
+namespace IndependentKnob;
 
 public enum TargetMode { Cycle, Focused, Modifiers }
 
@@ -23,6 +23,8 @@ public class Settings
     // Cycle/Focused: when set, the knob only controls apps while this key is held; otherwise it's Windows volume.
     public Modifier ActivationModifier { get; set; } = Modifier.None;
     public OverlayPosition OverlayPosition { get; set; } = OverlayPosition.Bottom;
+    // Overlay slider colour as "#RRGGBB"; null follows the Windows accent colour.
+    public string? OverlayColor { get; set; }
     public List<AppEntry> Apps { get; set; } = [];
     public string? DefaultApp { get; set; }
     // Process names the user said "Never" to (or removed); not suggested again.
@@ -43,7 +45,23 @@ public class Settings
     static bool Same(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 
     public static string DefaultPath { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "IndependantKnob", "settings.json");
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "IndependentKnob", "settings.json");
+
+    // The app used to be spelled "IndependantKnob". Move that settings folder to the new name once,
+    // so renaming the app doesn't lose anyone's settings. Never overwrites an existing new folder.
+    public static void MoveFromOldName(string appData)
+    {
+        string old = Path.Combine(appData, "IndependantKnob"), current = Path.Combine(appData, "IndependentKnob");
+        if (!Directory.Exists(old) || Directory.Exists(current)) return;
+        try
+        {
+            Directory.Move(old, current);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            // Old folder stays where it is; the app starts with defaults rather than failing.
+        }
+    }
 
     static readonly JsonSerializerOptions Json = new()
     {

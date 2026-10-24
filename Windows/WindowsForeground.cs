@@ -1,6 +1,6 @@
 using System.Runtime.Versioning;
 
-namespace IndependantKnob.Windows;
+namespace IndependentKnob.Windows;
 
 [SupportedOSPlatform("windows")]
 public sealed class WindowsForeground : IForeground

@@ -3,17 +3,25 @@ using System.Collections.Generic;
 using System.Linq;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
 using Avalonia.Controls.Templates;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-namespace IndependantKnob;
+namespace IndependentKnob;
 
 // Edits the Settings object App routes with, so changes apply to the knob immediately; each edit is saved.
 public partial class MainWindow : Window
 {
     // Order of every modifier dropdown ("None"-less ones skip the first entry).
     static readonly Modifier[] Keys = [Modifier.None, Modifier.Ctrl, Modifier.Shift, Modifier.Alt];
+
+    // Overlay slider colours; a null value follows the Windows accent colour.
+    static readonly (string Name, string? Hex)[] Colors =
+    [
+        ("Windows accent", null), ("Blue", "#3B82F6"), ("Teal", "#14B8A6"), ("Green", "#22C55E"), ("Purple", "#A855F7"),
+        ("Pink", "#EC4899"), ("Red", "#EF4444"), ("Orange", "#F97316"), ("Yellow", "#EAB308"), ("White", "#F5F5F5"),
+    ];
 
     readonly Settings settings;
     readonly IAudio? audio;
@@ -45,6 +53,13 @@ public partial class MainWindow : Window
         {
             settings.OverlayPosition = (OverlayPosition)OverlayPositionBox.SelectedIndex;
             PreviewOverlay?.Invoke(); // show the user where it will appear
+        });
+        OverlayColorBox.ItemTemplate = new FuncDataTemplate<(string Name, string? Hex)>((c, _) => Swatch(c.Name, c.Hex));
+        OverlayColorBox.ItemsSource = Colors;
+        OverlayColorBox.SelectionChanged += (_, _) => Edit(() =>
+        {
+            settings.OverlayColor = Colors[OverlayColorBox.SelectedIndex].Hex;
+            PreviewOverlay?.Invoke(); // show the new colour
         });
         DefaultAppBox.SelectionChanged += (_, _) => Edit(() =>
             settings.DefaultApp = DefaultAppBox.SelectedIndex > 0 ? settings.Apps[DefaultAppBox.SelectedIndex - 1].ProcessName : null);
@@ -96,6 +111,8 @@ public partial class MainWindow : Window
         MuteModifierBox.IsVisible = settings.MuteTrigger == MuteTrigger.ModifierPress;
         ActivationBox.SelectedIndex = Array.IndexOf(Keys, settings.ActivationModifier);
         OverlayPositionBox.SelectedIndex = (int)settings.OverlayPosition;
+        // A hand-edited colour that isn't a preset still shows on the overlay; the box then shows the accent entry.
+        OverlayColorBox.SelectedIndex = Math.Max(0, Array.FindIndex(Colors, c => string.Equals(c.Hex, settings.OverlayColor, StringComparison.OrdinalIgnoreCase)));
         ActivationPanel.IsVisible = settings.Mode != TargetMode.Modifiers;
         // Router strips the hold key before checking the mute key, so the same key can never mute.
         KeyClash.IsVisible = settings.MuteTrigger == MuteTrigger.ModifierPress && settings.ActivationModifier == settings.MuteModifier;
@@ -161,6 +178,24 @@ public partial class MainWindow : Window
         Grid.SetColumn(name, 1);
         label.Children.Add(name);
         return label;
+    }
+
+    // Colour dot and name for the overlay colour dropdown.
+    Control Swatch(string name, string? hex)
+    {
+        IBrush fill = hex != null
+            ? SolidColorBrush.Parse(hex)
+            : new SolidColorBrush(this.FindResource("SystemAccentColor") is Color accent ? accent : Avalonia.Media.Colors.Gray);
+        return new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 10,
+            Children =
+            {
+                new Ellipse { Width = 14, Height = 14, Fill = fill, VerticalAlignment = VerticalAlignment.Center },
+                new TextBlock { Text = name, VerticalAlignment = VerticalAlignment.Center },
+            },
+        };
     }
 
     // Icon-only button; the text goes in the tooltip and the screen-reader name.

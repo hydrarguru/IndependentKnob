@@ -1,4 +1,4 @@
-namespace IndependantKnob.Tests;
+namespace IndependentKnob.Tests;
 
 public class RouterTests
 {

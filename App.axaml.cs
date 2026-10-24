@@ -8,9 +8,9 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
-using IndependantKnob.Windows;
+using IndependentKnob.Windows;
 
-namespace IndependantKnob;
+namespace IndependentKnob;
 
 public partial class App : Application
 {
@@ -44,6 +44,7 @@ public partial class App : Application
         {
             // Lives in the tray: no window at startup, and closing the window doesn't quit. Only tray Exit does.
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            Settings.MoveFromOldName(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
             settings = Settings.Load(Settings.DefaultPath);
             UpdateTrayTip();
 
@@ -105,18 +106,18 @@ public partial class App : Application
             TargetMode.Focused => "the app you're using",
             _ => "the app for the key you hold",
         };
-        tray.ToolTipText = target == null ? "IndependantKnob" : $"IndependantKnob\nControlling: {target}";
+        tray.ToolTipText = target == null ? "IndependentKnob" : $"IndependentKnob\nControlling: {target}";
     }
 
-    // Shows the overlay where it's now set to appear: with the first listed app that's playing, else a sample.
+    // Shows the overlay as it's now set up (position, colour): with the first listed app that's playing, else a sample.
     void PreviewOverlay()
     {
         if (overlay == null) return; // no overlay on non-Windows yet
         var app = settings.Apps.FirstOrDefault(a => audio!.HasSession(a.ProcessName));
         if (app != null && audio!.TryGet(app.ProcessName) is { } state)
-            overlay.ShowState(app.DisplayName, app.ProcessName, state, icons?.TryGet(app.ProcessName), settings.OverlayPosition);
+            overlay.ShowState(app.DisplayName, app.ProcessName, state, icons?.TryGet(app.ProcessName), settings.OverlayPosition, settings.OverlayColor);
         else // no process name: dragging the sample's slider changes nothing
-            overlay.ShowState("Volume overlay", "", new AudioState(0.5f, false), null, settings.OverlayPosition);
+            overlay.ShowState("Volume overlay", "", new AudioState(0.5f, false), null, settings.OverlayPosition, settings.OverlayColor);
     }
 
     void Suggest()
@@ -192,7 +193,7 @@ public partial class App : Application
             string name = DisplayName(action.App!);
             string app = action.App!;
             // Posted, so the hook callback returns before the icon is looked up and the window is shown.
-            Dispatcher.UIThread.Post(() => overlay!.ShowState(name, app, result, icons?.TryGet(app), settings.OverlayPosition));
+            Dispatcher.UIThread.Post(() => overlay!.ShowState(name, app, result, icons?.TryGet(app), settings.OverlayPosition, settings.OverlayColor));
         }
         // A null result means the session vanished between routing and acting; let Windows handle the key.
         return action.Kind == ActionKind.CycleNext || result != null;

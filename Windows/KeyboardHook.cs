@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using static IndependantKnob.Windows.Native;
+using static IndependentKnob.Windows.Native;
 
-namespace IndependantKnob.Windows;
+namespace IndependentKnob.Windows;
 
 // Low-level keyboard hook for the volume media keys. Must be created on a thread with a message
 // loop (the Avalonia UI thread). Windows drops hooks whose callback takes over ~1 s, so handlers stay fast.

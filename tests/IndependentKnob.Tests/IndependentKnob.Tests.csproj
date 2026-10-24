@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\IndependantKnob.csproj" />
+    <ProjectReference Include="..\..\IndependentKnob.csproj" />
   </ItemGroup>
 
 </Project>

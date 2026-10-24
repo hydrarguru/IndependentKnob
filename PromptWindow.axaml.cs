@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 
-namespace IndependantKnob;
+namespace IndependentKnob;
 
 // "Discord is using audio. Control it with the knob?" Bottom-right, above the tray; never takes focus.
 // App wires AddButton / NotNowButton / NeverButton.
