@@ -17,8 +17,8 @@
                     <TextBlock x:Name="AppName" FontSize="17" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                     <TextBlock x:Name="Level" Grid.Column="1" FontSize="17" Margin="12,0,0,0" />
                 </Grid>
-                <!-- A slider for its look only (line with a dot at the current volume); input is off. -->
-                <Slider x:Name="Bar" Minimum="0" Maximum="100" IsHitTestVisible="False" Focusable="False" />
+                <!-- Drag the dot (or click the line) to set the volume; whole percents, like the label. -->
+                <Slider x:Name="Bar" Minimum="0" Maximum="100" TickFrequency="1" IsSnapToTickEnabled="True" Focusable="False" />
             </StackPanel>
         </Grid>
     </Border>

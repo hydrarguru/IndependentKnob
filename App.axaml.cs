@@ -59,7 +59,7 @@ public partial class App : Application
                 audio = new WindowsAudio();
                 foreground = new WindowsForeground();
                 icons = new WindowsIcons();
-                overlay = new OverlayWindow();
+                overlay = new OverlayWindow { Audio = audio };
 
                 var hook = new KeyboardHook();
                 hook.Knob += OnKnob;
@@ -162,7 +162,7 @@ public partial class App : Application
             string name = settings.Apps.FirstOrDefault(a => string.Equals(a.ProcessName, action.App, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? action.App!;
             string app = action.App!;
             // Posted, so the hook callback returns before the icon is looked up and the window is shown.
-            Dispatcher.UIThread.Post(() => overlay!.ShowState(name, result, icons?.TryGet(app)));
+            Dispatcher.UIThread.Post(() => overlay!.ShowState(name, app, result, icons?.TryGet(app)));
         }
         // A null result means the session vanished between routing and acting; let Windows handle the key.
         return action.Kind == ActionKind.CycleNext || result != null;

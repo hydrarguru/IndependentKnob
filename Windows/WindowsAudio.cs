@@ -24,11 +24,15 @@ public sealed class WindowsAudio : IAudio
     public AudioState? TryGet(string app) => With(app, s =>
         s.Count == 0 ? null : new AudioState(s[0].Session.SimpleAudioVolume.Volume, s[0].Session.SimpleAudioVolume.Mute));
 
-    // Like the Windows volume keys, turning also unmutes.
-    public AudioState? TryAdjust(string app, float step) => With(app, s =>
+    public AudioState? TryAdjust(string app, float step) => SetVolume(app, current => current + step);
+
+    public AudioState? TrySet(string app, float volume) => SetVolume(app, _ => volume);
+
+    // Like the Windows volume keys, changing the volume also unmutes.
+    static AudioState? SetVolume(string app, Func<float, float> target) => With(app, s =>
     {
         if (s.Count == 0) return null;
-        float volume = Math.Clamp(s[0].Session.SimpleAudioVolume.Volume + step, 0f, 1f);
+        float volume = Math.Clamp(target(s[0].Session.SimpleAudioVolume.Volume), 0f, 1f);
         foreach (var (session, _) in s)
         {
             session.SimpleAudioVolume.Volume = volume;

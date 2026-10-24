@@ -23,6 +23,7 @@ public interface IAudio
     bool HasSession(string app);
     AudioState? TryGet(string app);
     AudioState? TryAdjust(string app, float step);
+    AudioState? TrySet(string app, float volume);
     AudioState? TryToggleMute(string app);
 }
 
