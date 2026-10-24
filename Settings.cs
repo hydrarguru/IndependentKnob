@@ -17,6 +17,8 @@ public class Settings
     public TargetMode Mode { get; set; } = TargetMode.Cycle;
     public MuteTrigger MuteTrigger { get; set; } = MuteTrigger.DoublePress;
     public Modifier MuteModifier { get; set; } = Modifier.Ctrl;
+    // Cycle/Focused: when set, the knob only controls apps while this key is held; otherwise it's Windows volume.
+    public Modifier ActivationModifier { get; set; } = Modifier.None;
     public List<AppEntry> Apps { get; set; } = [];
     public string? DefaultApp { get; set; }
     // Process names the user said "Never" to (or removed); not suggested again.

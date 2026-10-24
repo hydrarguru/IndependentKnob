@@ -79,6 +79,45 @@ public class RouterTests
     }
 
     [Fact]
+    public void Activation_key_gates_cycle_and_focused()
+    {
+        var has = Playing("Spotify", "chrome");
+        var cycle = Make(TargetMode.Cycle, Spotify, Chrome);
+        cycle.ActivationModifier = Modifier.Ctrl;
+        Assert.Equal(ActionKind.PassThrough, Run(cycle, new(KnobKind.Up), has).Kind);
+        Assert.Equal(ActionKind.PassThrough, Run(cycle, new(KnobKind.Press, Modifier.Shift), has).Kind);
+        Assert.Equal(new KnobAction(ActionKind.VolumeUp, "Spotify"), Run(cycle, new(KnobKind.Up, Modifier.Ctrl), has));
+        Assert.Equal(ActionKind.CycleNext, Run(cycle, new(KnobKind.Press, Modifier.Ctrl), has).Kind);
+
+        var focused = Make(TargetMode.Focused, Spotify, Chrome);
+        focused.ActivationModifier = Modifier.Alt;
+        Assert.Equal(ActionKind.PassThrough, Run(focused, new(KnobKind.Up), has, fg: "chrome").Kind);
+        Assert.Equal(new KnobAction(ActionKind.VolumeUp, "chrome"), Run(focused, new(KnobKind.Up, Modifier.Alt), has, fg: "chrome"));
+    }
+
+    [Fact]
+    public void Activation_key_plus_mute_key_mutes()
+    {
+        var s = Make(TargetMode.Cycle, Spotify, Chrome);
+        s.ActivationModifier = Modifier.Ctrl;
+        s.MuteTrigger = MuteTrigger.ModifierPress;
+        s.MuteModifier = Modifier.Shift;
+        var has = Playing("Spotify", "chrome");
+        Assert.Equal(new KnobAction(ActionKind.ToggleMute, "Spotify"), Run(s, new(KnobKind.Press, Modifier.Ctrl | Modifier.Shift), has));
+        Assert.Equal(ActionKind.CycleNext, Run(s, new(KnobKind.Press, Modifier.Ctrl), has).Kind);
+    }
+
+    [Fact]
+    public void Modifiers_mode_ignores_activation_key_and_matches_exact_keys()
+    {
+        var s = Make(TargetMode.Modifiers, Spotify, Chrome);
+        s.ActivationModifier = Modifier.Alt;
+        var has = Playing("Spotify", "chrome");
+        Assert.Equal(new KnobAction(ActionKind.VolumeUp, "Spotify"), Run(s, new(KnobKind.Up), has));
+        Assert.Equal(ActionKind.PassThrough, Run(s, new(KnobKind.Up, Modifier.Ctrl | Modifier.Shift), has).Kind);
+    }
+
+    [Fact]
     public void Modifiers_picks_app_by_held_modifier()
     {
         var s = Make(TargetMode.Modifiers, Spotify, Chrome);

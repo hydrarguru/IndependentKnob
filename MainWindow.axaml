@@ -26,6 +26,17 @@
                 </ComboBox>
             </StackPanel>
 
+            <StackPanel x:Name="ActivationPanel" Spacing="4">
+                <TextBlock Text="Only while holding" FontWeight="SemiBold" />
+                <!-- Order matches MainWindow.Keys. -->
+                <ComboBox x:Name="ActivationBox" HorizontalAlignment="Stretch">
+                    <ComboBoxItem>Nothing (the knob always controls apps)</ComboBoxItem>
+                    <ComboBoxItem>Ctrl (plain turns stay Windows volume)</ComboBoxItem>
+                    <ComboBoxItem>Shift (plain turns stay Windows volume)</ComboBoxItem>
+                    <ComboBoxItem>Alt (plain turns stay Windows volume)</ComboBoxItem>
+                </ComboBox>
+            </StackPanel>
+
             <StackPanel x:Name="CyclePanel" Spacing="4">
                 <TextBlock Text="Mute with" FontWeight="SemiBold" />
                 <StackPanel Orientation="Horizontal" Spacing="8">
@@ -34,13 +45,16 @@
                         <ComboBoxItem>Double-press</ComboBoxItem>
                         <ComboBoxItem>Modifier + press</ComboBoxItem>
                     </ComboBox>
-                    <!-- Modifier enum minus None. -->
+                    <!-- MainWindow.Keys minus None. -->
                     <ComboBox x:Name="MuteModifierBox">
                         <ComboBoxItem>Ctrl</ComboBoxItem>
                         <ComboBoxItem>Shift</ComboBoxItem>
                         <ComboBoxItem>Alt</ComboBoxItem>
                     </ComboBox>
                 </StackPanel>
+                <TextBlock x:Name="KeyClash" Foreground="#E05050" TextWrapping="Wrap"
+                           Text="Mute needs a different key than the one you hold to control apps." />
+
             </StackPanel>
 
             <StackPanel x:Name="FocusedPanel" Spacing="4">

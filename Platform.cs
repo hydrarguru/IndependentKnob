@@ -3,7 +3,9 @@ using System.Collections.Generic;
 
 namespace IndependantKnob;
 
-public enum Modifier { None, Ctrl, Shift, Alt }
+// Flags: a KnobEvent carries every modifier held, so e.g. hold-Ctrl plus Shift+press can be told apart.
+[Flags]
+public enum Modifier { None = 0, Ctrl = 1, Shift = 2, Alt = 4 }
 
 public enum KnobKind { Up, Down, Press }
 

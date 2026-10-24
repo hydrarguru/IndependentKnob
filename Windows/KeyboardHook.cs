@@ -77,9 +77,8 @@ public sealed unsafe class KeyboardHook : IKnobInput, IDisposable
     }
 
     // GetAsyncKeyState, not GetKeyState: our thread doesn't get the keyboard messages, so its key state is stale.
-    // shortcut: one modifier per event, Ctrl > Shift > Alt when several are held; add combos if users ask.
     static Modifier HeldModifier() =>
-        Down(VK_CONTROL) ? Modifier.Ctrl : Down(VK_SHIFT) ? Modifier.Shift : Down(VK_MENU) ? Modifier.Alt : Modifier.None;
+        (Down(VK_CONTROL) ? Modifier.Ctrl : 0) | (Down(VK_SHIFT) ? Modifier.Shift : 0) | (Down(VK_MENU) ? Modifier.Alt : 0);
 
     static bool Down(int vk) => GetAsyncKeyState(vk) < 0;
 }

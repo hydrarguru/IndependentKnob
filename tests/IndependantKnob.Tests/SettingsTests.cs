@@ -26,6 +26,7 @@ public class SettingsTests : IDisposable
             Apps = [new("chrome", "Chrome", Modifier.Ctrl)],
             DefaultApp = "chrome",
             IgnoredApps = ["explorer"],
+            ActivationModifier = Modifier.Alt,
         };
         s.Save(Path);
 
@@ -37,6 +38,7 @@ public class SettingsTests : IDisposable
         Assert.Equal(s.Apps, loaded.Apps);
         Assert.Equal("chrome", loaded.DefaultApp);
         Assert.Equal(["explorer"], loaded.IgnoredApps);
+        Assert.Equal(Modifier.Alt, loaded.ActivationModifier);
     }
 
     [Fact]

@@ -112,7 +112,8 @@ public partial class App : Application
     // Runs inside the keyboard hook: returns true to swallow the key.
     bool OnKnob(KnobEvent e)
     {
-        if (settings.Mode == TargetMode.Cycle && e.Kind == KnobKind.Press && settings.MuteTrigger == MuteTrigger.DoublePress)
+        if (settings.Mode == TargetMode.Cycle && e.Kind == KnobKind.Press && settings.MuteTrigger == MuteTrigger.DoublePress
+            && Router.Active(settings, e))
         {
             if (pressTimer.IsEnabled)
             {

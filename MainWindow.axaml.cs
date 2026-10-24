@@ -10,6 +10,9 @@ namespace IndependantKnob;
 // Edits the Settings object App routes with, so changes apply to the knob immediately; each edit is saved.
 public partial class MainWindow : Window
 {
+    // Order of every modifier dropdown ("None"-less ones skip the first entry).
+    static readonly Modifier[] Keys = [Modifier.None, Modifier.Ctrl, Modifier.Shift, Modifier.Alt];
+
     readonly Settings settings;
     readonly IAudio? audio;
     List<(string ProcessName, string DisplayName)> available = [];
@@ -27,7 +30,8 @@ public partial class MainWindow : Window
 
         ModeBox.SelectionChanged += (_, _) => Edit(() => settings.Mode = (TargetMode)ModeBox.SelectedIndex);
         MuteTriggerBox.SelectionChanged += (_, _) => Edit(() => settings.MuteTrigger = (MuteTrigger)MuteTriggerBox.SelectedIndex);
-        MuteModifierBox.SelectionChanged += (_, _) => Edit(() => settings.MuteModifier = (Modifier)(MuteModifierBox.SelectedIndex + 1));
+        MuteModifierBox.SelectionChanged += (_, _) => Edit(() => settings.MuteModifier = Keys[MuteModifierBox.SelectedIndex + 1]);
+        ActivationBox.SelectionChanged += (_, _) => Edit(() => settings.ActivationModifier = Keys[ActivationBox.SelectedIndex]);
         DefaultAppBox.SelectionChanged += (_, _) => Edit(() =>
             settings.DefaultApp = DefaultAppBox.SelectedIndex > 0 ? settings.Apps[DefaultAppBox.SelectedIndex - 1].ProcessName : null);
 
@@ -73,8 +77,12 @@ public partial class MainWindow : Window
         refreshing = true;
         ModeBox.SelectedIndex = (int)settings.Mode;
         MuteTriggerBox.SelectedIndex = (int)settings.MuteTrigger;
-        MuteModifierBox.SelectedIndex = (int)settings.MuteModifier - 1;
+        MuteModifierBox.SelectedIndex = Array.IndexOf(Keys, settings.MuteModifier) - 1;
         MuteModifierBox.IsVisible = settings.MuteTrigger == MuteTrigger.ModifierPress;
+        ActivationBox.SelectedIndex = Array.IndexOf(Keys, settings.ActivationModifier);
+        ActivationPanel.IsVisible = settings.Mode != TargetMode.Modifiers;
+        // Router strips the hold key before checking the mute key, so the same key can never mute.
+        KeyClash.IsVisible = settings.MuteTrigger == MuteTrigger.ModifierPress && settings.ActivationModifier == settings.MuteModifier;
         CyclePanel.IsVisible = settings.Mode == TargetMode.Cycle;
         FocusedPanel.IsVisible = settings.Mode == TargetMode.Focused;
 
@@ -103,9 +111,8 @@ public partial class MainWindow : Window
 
         if (settings.Mode == TargetMode.Modifiers)
         {
-            // Item order matches the Modifier enum.
-            var modifier = new ComboBox { ItemsSource = new[] { "No modifier", "Ctrl", "Shift", "Alt" }, SelectedIndex = (int)app.Modifier, Margin = new(8, 0, 0, 0) };
-            modifier.SelectionChanged += (_, _) => Edit(() => settings.Apps[settings.Apps.IndexOf(app)] = app with { Modifier = (Modifier)modifier.SelectedIndex });
+            var modifier = new ComboBox { ItemsSource = new[] { "No modifier", "Ctrl", "Shift", "Alt" }, SelectedIndex = Array.IndexOf(Keys, app.Modifier), Margin = new(8, 0, 0, 0) };
+            modifier.SelectionChanged += (_, _) => Edit(() => settings.Apps[settings.Apps.IndexOf(app)] = app with { Modifier = Keys[modifier.SelectedIndex] });
             Grid.SetColumn(modifier, 1);
             row.Children.Add(modifier);
         }
