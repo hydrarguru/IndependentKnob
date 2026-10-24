@@ -27,6 +27,7 @@ public class SettingsTests : IDisposable
             DefaultApp = "chrome",
             IgnoredApps = ["explorer"],
             ActivationModifier = Modifier.Alt,
+            OverlayPosition = OverlayPosition.Right,
         };
         s.Save(Path);
 
@@ -39,6 +40,7 @@ public class SettingsTests : IDisposable
         Assert.Equal("chrome", loaded.DefaultApp);
         Assert.Equal(["explorer"], loaded.IgnoredApps);
         Assert.Equal(Modifier.Alt, loaded.ActivationModifier);
+        Assert.Equal(OverlayPosition.Right, loaded.OverlayPosition);
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 using System;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 
@@ -16,6 +17,7 @@ public partial class OverlayWindow : Window
     public IAudio? Audio { get; init; }
     string? app; // process name of the app shown
     bool updating; // ShowState is setting the slider, so ValueChanged isn't a drag
+    bool upright; // current layout; starts as the XAML's horizontal one
 
     public OverlayWindow()
     {
@@ -35,8 +37,9 @@ public partial class OverlayWindow : Window
         };
     }
 
-    public void ShowState(string displayName, string processName, AudioState state, IImage? icon)
+    public void ShowState(string displayName, string processName, AudioState state, IImage? icon, OverlayPosition position)
     {
+        Arrange(upright: position is OverlayPosition.Left or OverlayPosition.Right);
         app = processName;
         AppIcon.Source = icon;
         AppIcon.IsVisible = icon != null;
@@ -48,16 +51,54 @@ public partial class OverlayWindow : Window
 
         if (Screens.Primary is { } screen)
         {
-            // WorkingArea is in physical pixels, Width/Height in DIPs.
+            // WorkingArea is in physical pixels, Width/Height in DIPs. Centered along the chosen edge, 48 DIPs in from it.
             var area = screen.WorkingArea;
             double scale = screen.Scaling;
-            Position = new PixelPoint(
-                area.X + (int)((area.Width - Width * scale) / 2),
-                area.Bottom - (int)((Height + 48) * scale));
+            int w = (int)(Width * scale), h = (int)(Height * scale), gap = (int)(48 * scale);
+            int centerX = area.X + (area.Width - w) / 2, centerY = area.Y + (area.Height - h) / 2;
+            Position = position switch
+            {
+                OverlayPosition.Top => new PixelPoint(centerX, area.Y + gap),
+                OverlayPosition.Left => new PixelPoint(area.X + gap, centerY),
+                OverlayPosition.Right => new PixelPoint(area.Right - w - gap, centerY),
+                _ => new PixelPoint(centerX, area.Bottom - h - gap),
+            };
         }
 
         Show();
         HideLater(); // restart, so the overlay stays up while the knob keeps turning
+    }
+
+    // Upright (left/right edges): icon, name, vertical slider, percentage stacked. Otherwise the XAML's
+    // row: icon beside name + percentage, slider underneath.
+    void Arrange(bool upright)
+    {
+        if (this.upright == upright) return;
+        this.upright = upright;
+        Width = upright ? 132 : 380;
+        Height = upright ? 320 : 92;
+        Layout.ColumnDefinitions = new ColumnDefinitions(upright ? "*" : "Auto,*,Auto");
+        Layout.RowDefinitions = new RowDefinitions(upright ? "Auto,Auto,*,Auto" : "Auto,Auto");
+        Layout.VerticalAlignment = upright ? VerticalAlignment.Stretch : VerticalAlignment.Center;
+
+        Place(AppIcon, upright ? (0, 0, 1, 1) : (0, 0, 2, 1));
+        Place(AppName, upright ? (1, 0, 1, 1) : (0, 1, 1, 1));
+        Place(Bar, upright ? (2, 0, 1, 1) : (1, 1, 1, 2));
+        Place(Level, upright ? (3, 0, 1, 1) : (0, 2, 1, 1));
+        AppIcon.Margin = upright ? new Thickness(0, 0, 0, 10) : new Thickness(0, 0, 16, 0);
+        AppName.Margin = upright ? new Thickness(0, 0, 0, 8) : default;
+        Level.Margin = upright ? new Thickness(0, 8, 0, 0) : new Thickness(12, 0, 0, 0);
+        AppName.HorizontalAlignment = Level.HorizontalAlignment = Bar.HorizontalAlignment =
+            upright ? HorizontalAlignment.Center : HorizontalAlignment.Stretch;
+        Bar.Orientation = upright ? Orientation.Vertical : Orientation.Horizontal;
+    }
+
+    static void Place(Control control, (int Row, int Column, int RowSpan, int ColumnSpan) cell)
+    {
+        Grid.SetRow(control, cell.Row);
+        Grid.SetColumn(control, cell.Column);
+        Grid.SetRowSpan(control, cell.RowSpan);
+        Grid.SetColumnSpan(control, cell.ColumnSpan);
     }
 
     void ShowLevel(AudioState state)

@@ -10,6 +10,9 @@ public enum TargetMode { Cycle, Focused, Modifiers }
 
 public enum MuteTrigger { DoublePress, ModifierPress, LongPress }
 
+// Screen edge the overlay sits on; Left/Right show it upright.
+public enum OverlayPosition { Bottom, Top, Left, Right }
+
 public record AppEntry(string ProcessName, string DisplayName, Modifier Modifier = Modifier.None);
 
 public class Settings
@@ -19,6 +22,7 @@ public class Settings
     public Modifier MuteModifier { get; set; } = Modifier.Ctrl;
     // Cycle/Focused: when set, the knob only controls apps while this key is held; otherwise it's Windows volume.
     public Modifier ActivationModifier { get; set; } = Modifier.None;
+    public OverlayPosition OverlayPosition { get; set; } = OverlayPosition.Bottom;
     public List<AppEntry> Apps { get; set; } = [];
     public string? DefaultApp { get; set; }
     // Process names the user said "Never" to (or removed); not suggested again.

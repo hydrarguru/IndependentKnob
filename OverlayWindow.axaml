@@ -9,17 +9,15 @@
         RequestedThemeVariant="Dark">
     <!-- Fixed dark look, like the Windows volume flyout, so it reads on any wallpaper or theme. -->
     <Border CornerRadius="10" Padding="18,14" Background="#E6202020">
-        <Grid ColumnDefinitions="Auto,*">
+        <!-- Laid out horizontally here; OverlayWindow.Arrange rearranges it upright for the left/right edges. -->
+        <Grid x:Name="Layout" ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" VerticalAlignment="Center">
             <!-- Hidden when the app has no icon, so the text takes the full width. -->
-            <Image x:Name="AppIcon" Width="44" Height="44" Margin="0,0,16,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
-                <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock x:Name="AppName" FontSize="17" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                    <TextBlock x:Name="Level" Grid.Column="1" FontSize="17" Margin="12,0,0,0" />
-                </Grid>
-                <!-- Drag the dot (or click the line) to set the volume; whole percents, like the label. -->
-                <Slider x:Name="Bar" Minimum="0" Maximum="100" TickFrequency="1" IsSnapToTickEnabled="True" Focusable="False" />
-            </StackPanel>
+            <Image x:Name="AppIcon" Grid.RowSpan="2" Width="44" Height="44" Margin="0,0,16,0" VerticalAlignment="Center" />
+            <TextBlock x:Name="AppName" Grid.Column="1" FontSize="17" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+            <TextBlock x:Name="Level" Grid.Column="2" FontSize="17" Margin="12,0,0,0" />
+            <!-- Drag the dot (or click the line) to set the volume; whole percents, like the label. -->
+            <Slider x:Name="Bar" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                    Minimum="0" Maximum="100" TickFrequency="1" IsSnapToTickEnabled="True" Focusable="False" />
         </Grid>
     </Border>
 </Window>

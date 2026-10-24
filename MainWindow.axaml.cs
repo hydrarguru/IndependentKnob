@@ -15,6 +15,8 @@ public partial class MainWindow : Window
 
     readonly Settings settings;
     readonly IAudio? audio;
+    // Set by App: briefly shows the overlay at the current position.
+    public Action? PreviewOverlay { get; init; }
     List<(string ProcessName, string DisplayName)> available = [];
     // Set while Refresh writes the controls, so their change events don't count as user edits.
     bool refreshing;
@@ -32,6 +34,11 @@ public partial class MainWindow : Window
         MuteTriggerBox.SelectionChanged += (_, _) => Edit(() => settings.MuteTrigger = (MuteTrigger)MuteTriggerBox.SelectedIndex);
         MuteModifierBox.SelectionChanged += (_, _) => Edit(() => settings.MuteModifier = Keys[MuteModifierBox.SelectedIndex + 1]);
         ActivationBox.SelectionChanged += (_, _) => Edit(() => settings.ActivationModifier = Keys[ActivationBox.SelectedIndex]);
+        OverlayPositionBox.SelectionChanged += (_, _) => Edit(() =>
+        {
+            settings.OverlayPosition = (OverlayPosition)OverlayPositionBox.SelectedIndex;
+            PreviewOverlay?.Invoke(); // show the user where it will appear
+        });
         DefaultAppBox.SelectionChanged += (_, _) => Edit(() =>
             settings.DefaultApp = DefaultAppBox.SelectedIndex > 0 ? settings.Apps[DefaultAppBox.SelectedIndex - 1].ProcessName : null);
 
@@ -80,6 +87,7 @@ public partial class MainWindow : Window
         MuteModifierBox.SelectedIndex = Array.IndexOf(Keys, settings.MuteModifier) - 1;
         MuteModifierBox.IsVisible = settings.MuteTrigger == MuteTrigger.ModifierPress;
         ActivationBox.SelectedIndex = Array.IndexOf(Keys, settings.ActivationModifier);
+        OverlayPositionBox.SelectedIndex = (int)settings.OverlayPosition;
         ActivationPanel.IsVisible = settings.Mode != TargetMode.Modifiers;
         // Router strips the hold key before checking the mute key, so the same key can never mute.
         KeyClash.IsVisible = settings.MuteTrigger == MuteTrigger.ModifierPress && settings.ActivationModifier == settings.MuteModifier;

@@ -84,11 +84,22 @@ public partial class App : Application
     {
         if (window == null)
         {
-            window = new MainWindow(settings, audio);
+            window = new MainWindow(settings, audio) { PreviewOverlay = PreviewOverlay };
             window.Closed += (_, _) => window = null;
         }
         window.Show();
         window.Activate();
+    }
+
+    // Shows the overlay where it's now set to appear: with the first listed app that's playing, else a sample.
+    void PreviewOverlay()
+    {
+        if (overlay == null) return; // no overlay on non-Windows yet
+        var app = settings.Apps.FirstOrDefault(a => audio!.HasSession(a.ProcessName));
+        if (app != null && audio!.TryGet(app.ProcessName) is { } state)
+            overlay.ShowState(app.DisplayName, app.ProcessName, state, icons?.TryGet(app.ProcessName), settings.OverlayPosition);
+        else // no process name: dragging the sample's slider changes nothing
+            overlay.ShowState("Volume overlay", "", new AudioState(0.5f, false), null, settings.OverlayPosition);
     }
 
     void Suggest()
@@ -162,7 +173,7 @@ public partial class App : Application
             string name = settings.Apps.FirstOrDefault(a => string.Equals(a.ProcessName, action.App, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? action.App!;
             string app = action.App!;
             // Posted, so the hook callback returns before the icon is looked up and the window is shown.
-            Dispatcher.UIThread.Post(() => overlay!.ShowState(name, app, result, icons?.TryGet(app)));
+            Dispatcher.UIThread.Post(() => overlay!.ShowState(name, app, result, icons?.TryGet(app), settings.OverlayPosition));
         }
         // A null result means the session vanished between routing and acting; let Windows handle the key.
         return action.Kind == ActionKind.CycleNext || result != null;

@@ -63,6 +63,17 @@
                 <ComboBox x:Name="DefaultAppBox" HorizontalAlignment="Stretch" />
             </StackPanel>
 
+            <StackPanel Spacing="4">
+                <TextBlock Text="Show the volume overlay at the" FontWeight="SemiBold" />
+                <!-- Item order matches the OverlayPosition enum. -->
+                <ComboBox x:Name="OverlayPositionBox" HorizontalAlignment="Stretch">
+                    <ComboBoxItem>Bottom of the screen</ComboBoxItem>
+                    <ComboBoxItem>Top of the screen</ComboBoxItem>
+                    <ComboBoxItem>Left side (upright)</ComboBoxItem>
+                    <ComboBoxItem>Right side (upright)</ComboBoxItem>
+                </ComboBox>
+            </StackPanel>
+
             <TextBlock Text="Apps" FontWeight="SemiBold" />
         </StackPanel>
 
