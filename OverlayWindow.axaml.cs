@@ -1,8 +1,11 @@
 using System;
 using Avalonia;
+using Avalonia.Animation;
+using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.Transformation;
 using Avalonia.Threading;
 
 namespace IndependantKnob;
@@ -12,7 +15,12 @@ namespace IndependantKnob;
 // It stays up while the pointer is over it, and dragging the slider sets the app's volume.
 public partial class OverlayWindow : Window
 {
+    static readonly TimeSpan FadeTime = TimeSpan.FromMilliseconds(180);
     readonly DispatcherTimer hideTimer = new() { Interval = TimeSpan.FromSeconds(1.5) };
+    // Runs while the card fades out; the window is hidden when it fires. Stopped if the overlay comes back first.
+    readonly DispatcherTimer fadeOutTimer = new() { Interval = FadeTime };
+    readonly DoubleTransition fade = new() { Property = OpacityProperty, Duration = FadeTime };
+    readonly TransformOperationsTransition zoom = new() { Property = RenderTransformProperty, Duration = FadeTime };
     // Set by App; null in the previewer, where dragging just moves the slider.
     public IAudio? Audio { get; init; }
     string? app; // process name of the app shown
@@ -22,12 +30,23 @@ public partial class OverlayWindow : Window
     public OverlayWindow()
     {
         InitializeComponent();
+        Card.Transitions = [fade, zoom];
         hideTimer.Tick += (_, _) =>
         {
             hideTimer.Stop();
+            Animate(visible: false);
+            fadeOutTimer.Start();
+        };
+        fadeOutTimer.Tick += (_, _) =>
+        {
+            fadeOutTimer.Stop();
             Hide();
         };
-        PointerEntered += (_, _) => hideTimer.Stop();
+        PointerEntered += (_, _) =>
+        {
+            hideTimer.Stop();
+            if (fadeOutTimer.IsEnabled) Appear(); // caught it while fading out: bring it back
+        };
         PointerExited += (_, _) => HideLater();
         Bar.ValueChanged += (_, _) =>
         {
@@ -65,8 +84,23 @@ public partial class OverlayWindow : Window
             };
         }
 
-        Show();
+        Appear();
         HideLater(); // restart, so the overlay stays up while the knob keeps turning
+    }
+
+    void Appear()
+    {
+        fadeOutTimer.Stop();
+        Show();
+        Animate(visible: true); // from wherever the card is: hidden, or partway through fading out
+    }
+
+    // Appearing slows down as it arrives, leaving speeds up as it goes, like Windows' own flyouts.
+    void Animate(bool visible)
+    {
+        fade.Easing = zoom.Easing = visible ? new CubicEaseOut() : new CubicEaseIn();
+        Card.Opacity = visible ? 1 : 0;
+        Card.RenderTransform = TransformOperations.Parse(visible ? "scale(1)" : "scale(0.96)");
     }
 
     // Upright (left/right edges): icon, name, vertical slider, percentage stacked. Otherwise the XAML's

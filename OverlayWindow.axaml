@@ -8,7 +8,9 @@
         TransparencyLevelHint="Transparent" Background="Transparent"
         RequestedThemeVariant="Dark">
     <!-- Fixed dark look, like the Windows volume flyout, so it reads on any wallpaper or theme. -->
-    <Border CornerRadius="10" Padding="18,14" Background="#E6202020">
+    <!-- Starts faded out and slightly shrunk; OverlayWindow.Animate fades and zooms it in and out. -->
+    <Border x:Name="Card" CornerRadius="10" Padding="18,14" Background="#E6202020"
+            Opacity="0" RenderTransform="scale(0.96)">
         <!-- Laid out horizontally here; OverlayWindow.Arrange rearranges it upright for the left/right edges. -->
         <Grid x:Name="Layout" ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" VerticalAlignment="Center">
             <!-- Hidden when the app has no icon, so the text takes the full width. -->
