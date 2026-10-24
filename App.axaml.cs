@@ -84,7 +84,7 @@ public partial class App : Application
     {
         if (window == null)
         {
-            window = new MainWindow(settings, audio) { PreviewOverlay = PreviewOverlay };
+            window = new MainWindow(settings, audio, icons) { PreviewOverlay = PreviewOverlay };
             window.Closed += (_, _) => window = null;
         }
         window.Show();

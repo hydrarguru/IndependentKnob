@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Templates;
 using Avalonia.Layout;
 using Avalonia.Media;
 
@@ -15,6 +17,7 @@ public partial class MainWindow : Window
 
     readonly Settings settings;
     readonly IAudio? audio;
+    readonly IAppIcons? icons;
     // Set by App: briefly shows the overlay at the current position.
     public Action? PreviewOverlay { get; init; }
     List<(string ProcessName, string DisplayName)> available = [];
@@ -22,13 +25,15 @@ public partial class MainWindow : Window
     bool refreshing;
 
     // For the XAML previewer and runtime loader only; the app passes its live settings.
-    public MainWindow() : this(new Settings(), null) { }
+    public MainWindow() : this(new Settings(), null, null) { }
 
-    public MainWindow(Settings settings, IAudio? audio)
+    public MainWindow(Settings settings, IAudio? audio, IAppIcons? icons)
     {
         this.settings = settings;
         this.audio = audio;
+        this.icons = icons;
         InitializeComponent();
+        AddBox.ItemTemplate = new FuncDataTemplate<(string ProcessName, string DisplayName)>((s, _) => AppLabel(s.ProcessName, s.DisplayName));
 
         ModeBox.SelectionChanged += (_, _) => Edit(() => settings.Mode = (TargetMode)ModeBox.SelectedIndex);
         MuteTriggerBox.SelectionChanged += (_, _) => Edit(() => settings.MuteTrigger = (MuteTrigger)MuteTriggerBox.SelectedIndex);
@@ -46,7 +51,7 @@ public partial class MainWindow : Window
         AddBox.DropDownOpened += (_, _) =>
         {
             available = (audio?.Sessions() ?? []).Where(s => !settings.Apps.Any(a => Same(a.ProcessName, s.ProcessName))).ToList();
-            AddBox.ItemsSource = available.Select(s => Label(s.ProcessName, s.DisplayName)).ToList();
+            AddBox.ItemsSource = available;
         };
         AddBox.SelectionChanged += (_, _) => AddButton.IsEnabled = AddBox.SelectedIndex >= 0;
         AddButton.Click += (_, _) =>
@@ -110,22 +115,17 @@ public partial class MainWindow : Window
     Control Row(AppEntry app)
     {
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto") };
-        row.Children.Add(new TextBlock
-        {
-            Text = Label(app.ProcessName, app.DisplayName),
-            VerticalAlignment = VerticalAlignment.Center,
-            TextTrimming = TextTrimming.CharacterEllipsis,
-        });
+        row.Children.Add(AppLabel(app.ProcessName, app.DisplayName));
 
         if (settings.Mode == TargetMode.Modifiers)
         {
-            var modifier = new ComboBox { ItemsSource = new[] { "No modifier", "Ctrl", "Shift", "Alt" }, SelectedIndex = Array.IndexOf(Keys, app.Modifier), Margin = new(8, 0, 0, 0) };
+            var modifier = new ComboBox { ItemsSource = new[] { "No modifier", "Ctrl", "Shift", "Alt" }, SelectedIndex = Array.IndexOf(Keys, app.Modifier), Width = 130, Margin = new(8, 0, 0, 0) }; // fixed width keeps the buttons in line
             modifier.SelectionChanged += (_, _) => Edit(() => settings.Apps[settings.Apps.IndexOf(app)] = app with { Modifier = Keys[modifier.SelectedIndex] });
             Grid.SetColumn(modifier, 1);
             row.Children.Add(modifier);
         }
 
-        var remove = new Button { Content = "Remove", Margin = new(8, 0, 0, 0) };
+        var remove = IconButton("TrashIcon", $"Remove {app.DisplayName}");
         remove.Click += (_, _) => Edit(() =>
         {
             settings.Apps.Remove(app);
@@ -141,12 +141,32 @@ public partial class MainWindow : Window
     Control IgnoredRow(string process)
     {
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
-        row.Children.Add(new TextBlock { Text = process, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
-        var askAgain = new Button { Content = "Ask again", Margin = new(8, 0, 0, 0) };
+        row.Children.Add(AppLabel(process, process));
+        var askAgain = IconButton("UndoIcon", $"Suggest {process} again");
         askAgain.Click += (_, _) => Edit(() => settings.IgnoredApps.Remove(process));
         Grid.SetColumn(askAgain, 1);
         row.Children.Add(askAgain);
         return row;
+    }
+
+    // Logo (if the app has one we can read) and name. The logo column keeps its width either way, so names line up.
+    Control AppLabel(string process, string display)
+    {
+        var label = new Grid { ColumnDefinitions = new ColumnDefinitions("20,*"), VerticalAlignment = VerticalAlignment.Center };
+        if (icons?.TryGet(process) is { } icon) label.Children.Add(new Image { Source = icon, Width = 20, Height = 20 });
+        var name = new TextBlock { Text = Label(process, display), Margin = new(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
+        Grid.SetColumn(name, 1);
+        label.Children.Add(name);
+        return label;
+    }
+
+    // Icon-only button; the text goes in the tooltip and the screen-reader name.
+    Button IconButton(string icon, string text)
+    {
+        var button = new Button { Content = new PathIcon { Data = (Geometry)this.FindResource(icon)! }, Margin = new(8, 0, 0, 0), Classes = { "icon" } };
+        ToolTip.SetTip(button, text);
+        AutomationProperties.SetName(button, text);
+        return button;
     }
 
     static string Label(string process, string display) => Same(process, display) ? display : $"{display} ({process})";
