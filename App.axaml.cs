@@ -20,6 +20,7 @@ public partial class App : Application
     RouterState state = new();
     IAudio? audio;
     IForeground? foreground;
+    IAppIcons? icons;
     OverlayWindow? overlay;
     MainWindow? window;
     // Cycle + DoublePress/LongPress: the press waits here while it's timed.
@@ -57,6 +58,7 @@ public partial class App : Application
             {
                 audio = new WindowsAudio();
                 foreground = new WindowsForeground();
+                icons = new WindowsIcons();
                 overlay = new OverlayWindow();
 
                 var hook = new KeyboardHook();
@@ -158,8 +160,9 @@ public partial class App : Application
         if (result != null)
         {
             string name = settings.Apps.FirstOrDefault(a => string.Equals(a.ProcessName, action.App, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? action.App!;
-            // Posted, so the hook callback returns before the window is shown.
-            Dispatcher.UIThread.Post(() => overlay!.ShowState(name, result));
+            string app = action.App!;
+            // Posted, so the hook callback returns before the icon is looked up and the window is shown.
+            Dispatcher.UIThread.Post(() => overlay!.ShowState(name, result, icons?.TryGet(app)));
         }
         // A null result means the session vanished between routing and acting; let Windows handle the key.
         return action.Kind == ActionKind.CycleNext || result != null;

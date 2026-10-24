@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Avalonia.Media;
 
 namespace IndependantKnob;
 
@@ -23,6 +24,12 @@ public interface IAudio
     AudioState? TryGet(string app);
     AudioState? TryAdjust(string app, float step);
     AudioState? TryToggleMute(string app);
+}
+
+// The app's own logo for the overlay; null when none can be found.
+public interface IAppIcons
+{
+    IImage? TryGet(string app);
 }
 
 public interface IForeground

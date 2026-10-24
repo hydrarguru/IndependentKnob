@@ -2,19 +2,24 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="IndependantKnob.OverlayWindow"
         Title="IndependantKnob overlay"
-        Width="280" Height="76"
+        Width="380" Height="92"
         WindowDecorations="None" CanResize="False"
         Topmost="True" ShowActivated="False" ShowInTaskbar="False"
         TransparencyLevelHint="Transparent" Background="Transparent"
-        Foreground="White">
+        RequestedThemeVariant="Dark">
     <!-- Fixed dark look, like the Windows volume flyout, so it reads on any wallpaper or theme. -->
-    <Border CornerRadius="8" Padding="16,12" Background="#E6202020">
-        <StackPanel Spacing="8">
-            <Grid ColumnDefinitions="*,Auto">
-                <TextBlock x:Name="AppName" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                <TextBlock x:Name="Level" Grid.Column="1" Margin="12,0,0,0" />
-            </Grid>
-            <ProgressBar x:Name="Bar" Minimum="0" Maximum="100" />
-        </StackPanel>
+    <Border CornerRadius="10" Padding="18,14" Background="#E6202020">
+        <Grid ColumnDefinitions="Auto,*">
+            <!-- Hidden when the app has no icon, so the text takes the full width. -->
+            <Image x:Name="AppIcon" Width="44" Height="44" Margin="0,0,16,0" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock x:Name="AppName" FontSize="17" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="Level" Grid.Column="1" FontSize="17" Margin="12,0,0,0" />
+                </Grid>
+                <!-- A slider for its look only (line with a dot at the current volume); input is off. -->
+                <Slider x:Name="Bar" Minimum="0" Maximum="100" IsHitTestVisible="False" Focusable="False" />
+            </StackPanel>
+        </Grid>
     </Border>
 </Window>

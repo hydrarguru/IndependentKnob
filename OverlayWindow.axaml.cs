@@ -1,6 +1,7 @@
 using System;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Media;
 using Avalonia.Threading;
 
 namespace IndependantKnob;
@@ -21,8 +22,10 @@ public partial class OverlayWindow : Window
         };
     }
 
-    public void ShowState(string app, AudioState state)
+    public void ShowState(string app, AudioState state, IImage? icon)
     {
+        AppIcon.Source = icon;
+        AppIcon.IsVisible = icon != null;
         AppName.Text = app;
         Bar.Value = Math.Round(state.Volume * 100);
         Bar.Opacity = state.Muted ? 0.4 : 1;
