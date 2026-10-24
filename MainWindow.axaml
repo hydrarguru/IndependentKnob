@@ -56,6 +56,11 @@
                 <TextBlock x:Name="EmptyHint" Opacity="0.7" TextWrapping="Wrap"
                            Text="No apps yet. Start playing audio in an app, then add it below. Until then the knob works as normal Windows volume." />
                 <StackPanel x:Name="AppList" Spacing="6" />
+
+                <StackPanel x:Name="IgnoredPanel" Spacing="6" Margin="0,16,0,0">
+                    <TextBlock Text="Not suggested" FontWeight="SemiBold" />
+                    <StackPanel x:Name="IgnoredList" Spacing="6" />
+                </StackPanel>
             </StackPanel>
         </ScrollViewer>
     </DockPanel>

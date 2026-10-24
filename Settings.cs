@@ -19,6 +19,22 @@ public class Settings
     public Modifier MuteModifier { get; set; } = Modifier.Ctrl;
     public List<AppEntry> Apps { get; set; } = [];
     public string? DefaultApp { get; set; }
+    // Process names the user said "Never" to (or removed); not suggested again.
+    public List<string> IgnoredApps { get; set; } = [];
+
+    // The first audio app worth suggesting: not listed, not ignored, not put off with "Not now".
+    public (string ProcessName, string DisplayName)? NextSuggestion(
+        IEnumerable<(string ProcessName, string DisplayName)> sessions, IReadOnlySet<string> notNow)
+    {
+        foreach (var s in sessions)
+            if (!Apps.Exists(a => Same(a.ProcessName, s.ProcessName))
+                && !IgnoredApps.Exists(i => Same(i, s.ProcessName))
+                && !notNow.Contains(s.ProcessName))
+                return s;
+        return null;
+    }
+
+    static bool Same(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 
     public static string DefaultPath { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "IndependantKnob", "settings.json");
@@ -50,5 +66,19 @@ public class Settings
         // Write then swap, so a crash mid-write can't leave a half-written file.
         File.WriteAllText(path + ".tmp", JsonSerializer.Serialize(this, Json));
         File.Move(path + ".tmp", path, overwrite: true);
+    }
+
+    // Save for UI callers: returns the error message instead of throwing on disk/permission problems.
+    public string? TrySave(string path)
+    {
+        try
+        {
+            Save(path);
+            return null;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return e.Message;
+        }
     }
 }

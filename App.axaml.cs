@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -22,6 +25,10 @@ public partial class App : Application
     // Cycle + DoublePress: the first press waits here; a second press inside the window mutes instead.
     readonly DispatcherTimer pressTimer = new() { Interval = TimeSpan.FromMilliseconds(300) };
     KnobEvent? pendingPress;
+    // Looks for audio apps that aren't listed yet and asks about them, one popup at a time.
+    readonly DispatcherTimer scanTimer = new() { Interval = TimeSpan.FromSeconds(3) };
+    PromptWindow? prompt;
+    readonly HashSet<string> notNow = new(StringComparer.OrdinalIgnoreCase); // until restart
 
     public override void Initialize()
     {
@@ -35,6 +42,13 @@ public partial class App : Application
             // Lives in the tray: no window at startup, and closing the window doesn't quit. Only tray Exit does.
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
             settings = Settings.Load(Settings.DefaultPath);
+
+            // A second copy of the app signals this instead of starting (see Program.Main).
+            if (Program.OpenRequest is { } openRequest)
+                new Thread(() =>
+                {
+                    while (openRequest.WaitOne()) Dispatcher.UIThread.Post(() => OnOpen(null, EventArgs.Empty));
+                }) { IsBackground = true }.Start();
 
             // Other platforms get the UI only until they have their own IAudio/IKnobInput.
             if (OperatingSystem.IsWindows())
@@ -52,6 +66,8 @@ public partial class App : Application
                     pressTimer.Stop();
                     if (pendingPress != null) Apply(pendingPress, secondPress: false);
                 };
+                scanTimer.Tick += (_, _) => Suggest();
+                scanTimer.Start();
             }
         }
 
@@ -68,6 +84,26 @@ public partial class App : Application
         }
         window.Show();
         window.Activate();
+    }
+
+    void Suggest()
+    {
+        if (prompt != null || settings.NextSuggestion(audio!.Sessions(), notNow) is not { } app) return;
+        prompt = new PromptWindow(app.DisplayName);
+        prompt.AddButton.Click += (_, _) => Answer(() => settings.Apps.Add(new AppEntry(app.ProcessName, app.DisplayName)));
+        prompt.NotNowButton.Click += (_, _) => Answer(() => notNow.Add(app.ProcessName));
+        prompt.NeverButton.Click += (_, _) => Answer(() => settings.IgnoredApps.Add(app.ProcessName));
+        prompt.Closed += (_, _) => prompt = null;
+        prompt.Show();
+    }
+
+    void Answer(Action change)
+    {
+        change();
+        string? error = settings.TrySave(Settings.DefaultPath);
+        if (error != null) Debug.WriteLine($"Couldn't save settings: {error}");
+        window?.Changed(error);
+        prompt?.Close();
     }
 
     void OnExit(object? sender, EventArgs e) =>

@@ -1,0 +1,21 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="IndependantKnob.PromptWindow"
+        Title="IndependantKnob"
+        Width="340" Height="118"
+        WindowDecorations="None" CanResize="False"
+        Topmost="True" ShowActivated="False" ShowInTaskbar="False"
+        TransparencyLevelHint="Transparent" Background="Transparent"
+        RequestedThemeVariant="Dark">
+    <!-- Dark like the overlay, so both popups look alike whatever the system theme. -->
+    <Border CornerRadius="8" Padding="16,12" Background="#F2202020" BorderBrush="#40FFFFFF" BorderThickness="1">
+        <DockPanel>
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                <Button x:Name="NeverButton" Content="Never" />
+                <Button x:Name="NotNowButton" Content="Not now" />
+                <Button x:Name="AddButton" Content="Add" Classes="accent" />
+            </StackPanel>
+            <TextBlock x:Name="Message" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+        </DockPanel>
+    </Border>
+</Window>

@@ -25,6 +25,7 @@ public class SettingsTests : IDisposable
             MuteModifier = Modifier.Shift,
             Apps = [new("chrome", "Chrome", Modifier.Ctrl)],
             DefaultApp = "chrome",
+            IgnoredApps = ["explorer"],
         };
         s.Save(Path);
 
@@ -35,6 +36,18 @@ public class SettingsTests : IDisposable
         Assert.Equal(Modifier.Shift, loaded.MuteModifier);
         Assert.Equal(s.Apps, loaded.Apps);
         Assert.Equal("chrome", loaded.DefaultApp);
+        Assert.Equal(["explorer"], loaded.IgnoredApps);
+    }
+
+    [Fact]
+    public void Suggests_first_app_not_listed_ignored_or_put_off()
+    {
+        var s = new Settings { Apps = [new("Spotify", "Spotify")], IgnoredApps = ["explorer"] };
+        var notNow = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "steam" };
+        (string, string)[] sessions = [("spotify", "Spotify"), ("Explorer", "Explorer"), ("STEAM", "Steam"), ("Discord", "Discord")];
+
+        Assert.Equal(("Discord", "Discord"), s.NextSuggestion(sessions, notNow));
+        Assert.Null(s.NextSuggestion(sessions[..3], notNow));
     }
 
     [Fact]

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -43,7 +42,11 @@ public partial class MainWindow : Window
         {
             var (process, display) = available[AddBox.SelectedIndex];
             AddBox.SelectedIndex = -1;
-            Edit(() => settings.Apps.Add(new AppEntry(process, display)));
+            Edit(() =>
+            {
+                settings.Apps.Add(new AppEntry(process, display));
+                settings.IgnoredApps.RemoveAll(i => Same(i, process));
+            });
         };
 
         Refresh();
@@ -53,17 +56,15 @@ public partial class MainWindow : Window
     {
         if (refreshing) return;
         change();
-        try
-        {
-            settings.Save(Settings.DefaultPath);
-            Status.IsVisible = false;
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-        {
-            // The change still applies to the knob; only saving it failed.
-            Status.Text = $"Couldn't save settings: {e.Message}";
-            Status.IsVisible = true;
-        }
+        Changed(settings.TrySave(Settings.DefaultPath));
+    }
+
+    // Also called by App when the "add this app?" popup changes the settings.
+    internal void Changed(string? saveError)
+    {
+        // On a save error the change still applies to the knob; only saving it failed.
+        Status.Text = $"Couldn't save settings: {saveError}";
+        Status.IsVisible = saveError != null;
         Refresh();
     }
 
@@ -83,6 +84,10 @@ public partial class MainWindow : Window
         AppList.Children.Clear();
         foreach (var app in settings.Apps) AppList.Children.Add(Row(app));
         EmptyHint.IsVisible = settings.Apps.Count == 0;
+
+        IgnoredList.Children.Clear();
+        foreach (var app in settings.IgnoredApps) IgnoredList.Children.Add(IgnoredRow(app));
+        IgnoredPanel.IsVisible = settings.IgnoredApps.Count > 0;
         refreshing = false;
     }
 
@@ -110,9 +115,22 @@ public partial class MainWindow : Window
         {
             settings.Apps.Remove(app);
             if (Same(app.ProcessName, settings.DefaultApp)) settings.DefaultApp = null;
+            // Otherwise the popup would offer it again within seconds.
+            settings.IgnoredApps.Add(app.ProcessName);
         });
         Grid.SetColumn(remove, 2);
         row.Children.Add(remove);
+        return row;
+    }
+
+    Control IgnoredRow(string process)
+    {
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        row.Children.Add(new TextBlock { Text = process, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
+        var askAgain = new Button { Content = "Ask again", Margin = new(8, 0, 0, 0) };
+        askAgain.Click += (_, _) => Edit(() => settings.IgnoredApps.Remove(process));
+        Grid.SetColumn(askAgain, 1);
+        row.Children.Add(askAgain);
         return row;
     }
 
