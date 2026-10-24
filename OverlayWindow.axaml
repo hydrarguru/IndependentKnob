@@ -1,0 +1,20 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="IndependantKnob.OverlayWindow"
+        Title="IndependantKnob overlay"
+        Width="280" Height="76"
+        WindowDecorations="None" CanResize="False"
+        Topmost="True" ShowActivated="False" ShowInTaskbar="False"
+        TransparencyLevelHint="Transparent" Background="Transparent"
+        Foreground="White">
+    <!-- Fixed dark look, like the Windows volume flyout, so it reads on any wallpaper or theme. -->
+    <Border CornerRadius="8" Padding="16,12" Background="#E6202020">
+        <StackPanel Spacing="8">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock x:Name="AppName" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock x:Name="Level" Grid.Column="1" Margin="12,0,0,0" />
+            </Grid>
+            <ProgressBar x:Name="Bar" Minimum="0" Maximum="100" />
+        </StackPanel>
+    </Border>
+</Window>

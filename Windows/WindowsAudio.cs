@@ -21,6 +21,9 @@ public sealed class WindowsAudio : IAudio
 
     public bool HasSession(string app) => With(app, s => s.Count > 0);
 
+    public AudioState? TryGet(string app) => With(app, s =>
+        s.Count == 0 ? null : new AudioState(s[0].Session.SimpleAudioVolume.Volume, s[0].Session.SimpleAudioVolume.Mute));
+
     // Like the Windows volume keys, turning also unmutes.
     public AudioState? TryAdjust(string app, float step) => With(app, s =>
     {

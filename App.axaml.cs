@@ -1,7 +1,7 @@
 using System;
-using System.Diagnostics;
 using System.Linq;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
@@ -17,6 +17,7 @@ public partial class App : Application
     RouterState state = new();
     IAudio? audio;
     IForeground? foreground;
+    OverlayWindow? overlay;
     // Cycle + DoublePress: the first press waits here; a second press inside the window mutes instead.
     readonly DispatcherTimer pressTimer = new() { Interval = TimeSpan.FromMilliseconds(300) };
     KnobEvent? pendingPress;
@@ -31,12 +32,15 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = new MainWindow();
+            // The hidden overlay would otherwise keep the app alive after the main window closes. Stage 4 (tray) replaces this.
+            desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
 
             // Other platforms get the UI only until they have their own IAudio/IKnobInput.
             if (OperatingSystem.IsWindows())
             {
                 audio = new WindowsAudio();
                 foreground = new WindowsForeground();
+                overlay = new OverlayWindow();
                 settings = Settings.Load(Settings.DefaultPath);
                 // Temporary until the settings window (stage 5): edit settings.json, or get these defaults.
                 if (settings.Apps.Count == 0)
@@ -84,10 +88,15 @@ public partial class App : Application
             ActionKind.VolumeUp => audio.TryAdjust(action.App!, Step),
             ActionKind.VolumeDown => audio.TryAdjust(action.App!, -Step),
             ActionKind.ToggleMute => audio.TryToggleMute(action.App!),
+            ActionKind.CycleNext => audio.TryGet(action.App!),
             _ => null,
         };
-        // Stage 3 replaces this with the overlay.
-        Debug.WriteLine($"Knob {e} -> {action} {result}");
+        if (result != null)
+        {
+            string name = settings.Apps.FirstOrDefault(a => string.Equals(a.ProcessName, action.App, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? action.App!;
+            // Posted, so the hook callback returns before the window is shown.
+            Dispatcher.UIThread.Post(() => overlay!.ShowState(name, result));
+        }
         // A null result means the session vanished between routing and acting; let Windows handle the key.
         return action.Kind == ActionKind.CycleNext || result != null;
     }

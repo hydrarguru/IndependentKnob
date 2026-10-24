@@ -17,6 +17,7 @@ public interface IAudio
 {
     IReadOnlyList<(string ProcessName, string DisplayName)> Sessions();
     bool HasSession(string app);
+    AudioState? TryGet(string app);
     AudioState? TryAdjust(string app, float step);
     AudioState? TryToggleMute(string app);
 }
