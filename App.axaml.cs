@@ -18,6 +18,7 @@ public partial class App : Application
     IAudio? audio;
     IForeground? foreground;
     OverlayWindow? overlay;
+    MainWindow? window;
     // Cycle + DoublePress: the first press waits here; a second press inside the window mutes instead.
     readonly DispatcherTimer pressTimer = new() { Interval = TimeSpan.FromMilliseconds(300) };
     KnobEvent? pendingPress;
@@ -31,9 +32,8 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new MainWindow();
-            // The hidden overlay would otherwise keep the app alive after the main window closes. Stage 4 (tray) replaces this.
-            desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
+            // Lives in the tray: no window at startup, and closing the window doesn't quit. Only tray Exit does.
+            desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
             // Other platforms get the UI only until they have their own IAudio/IKnobInput.
             if (OperatingSystem.IsWindows())
@@ -60,6 +60,21 @@ public partial class App : Application
 
         base.OnFrameworkInitializationCompleted();
     }
+
+    // Closing the window just drops it; Open makes a fresh one, so there's no hide/cancel-close dance.
+    void OnOpen(object? sender, EventArgs e)
+    {
+        if (window == null)
+        {
+            window = new MainWindow();
+            window.Closed += (_, _) => window = null;
+        }
+        window.Show();
+        window.Activate();
+    }
+
+    void OnExit(object? sender, EventArgs e) =>
+        (ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown();
 
     // Runs inside the keyboard hook: returns true to swallow the key.
     bool OnKnob(KnobEvent e)
