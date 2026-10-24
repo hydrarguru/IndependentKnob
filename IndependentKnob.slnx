@@ -1,6 +1,8 @@
 <Solution>
   <Folder Name="/Solution Items/">
     <File Path=".gitignore" />
+    <File Path="README.md" />
+    <File Path="LICENSE" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/IndependentKnob.Tests/IndependentKnob.Tests.csproj" />
