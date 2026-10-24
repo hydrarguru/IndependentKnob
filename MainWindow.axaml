@@ -33,14 +33,6 @@
     <DockPanel Margin="16,12">
         <TextBlock x:Name="Status" DockPanel.Dock="Bottom" Margin="0,8,0,0" Foreground="#E05050" TextWrapping="Wrap" IsVisible="False" />
 
-        <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto" Margin="0,10,0,0">
-            <ComboBox x:Name="AddBox" HorizontalAlignment="Stretch" PlaceholderText="Add an app that is playing audio" />
-            <Button x:Name="AddButton" Grid.Column="1" Margin="8,0,0,0" Classes="icon" IsEnabled="False"
-                    ToolTip.Tip="Add app" AutomationProperties.Name="Add app">
-                <PathIcon Data="{StaticResource PlusIcon}" />
-            </Button>
-        </Grid>
-
         <!-- Hidden rows take no space, so each mode only shows the settings it uses. -->
         <StackPanel DockPanel.Dock="Top" Spacing="8" Grid.IsSharedSizeScope="True">
             <Grid>
@@ -117,6 +109,13 @@
 
             <Separator Margin="0,6" />
             <TextBlock Text="Apps" FontWeight="SemiBold" />
+            <Grid ColumnDefinitions="*,Auto">
+                <ComboBox x:Name="AddBox" HorizontalAlignment="Stretch" PlaceholderText="Add an app that is playing audio" />
+                <Button x:Name="AddButton" Grid.Column="1" Margin="8,0,0,0" Classes="icon" IsEnabled="False"
+                        ToolTip.Tip="Add app" AutomationProperties.Name="Add app">
+                    <PathIcon Data="{StaticResource PlusIcon}" />
+                </Button>
+            </Grid>
         </StackPanel>
 
         <ScrollViewer Margin="0,6,0,0">
