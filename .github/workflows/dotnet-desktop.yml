@@ -2,7 +2,7 @@
 # The Release run also publishes the app as one self-contained IndependentKnob.exe (runs without
 # installing .NET) and uploads it as a build artifact, downloadable from the workflow run's page.
 #
-# To publish a GitHub release with the exe attached, push a version tag:
+# To publish a GitHub release with the exe and the installer attached, push a version tag:
 #   git tag v1.0.0
 #   git push origin v1.0.0
 
@@ -53,12 +53,21 @@ jobs:
         -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
         --output publish
 
+    # Inno Setup is preinstalled on the Windows runner. Tag builds get the tag as version (v1.2.3 -> 1.2.3).
+    - name: Build the installer
+      if: matrix.configuration == 'Release'
+      run: |
+        $version = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME.TrimStart('v') } else { '0.0.0' }
+        & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$version" installer\IndependentKnob.iss
+
     - name: Upload the app
       if: matrix.configuration == 'Release'
       uses: actions/upload-artifact@v4
       with:
         name: IndependentKnob-win-x64
-        path: publish/IndependentKnob.exe
+        path: |
+          publish/IndependentKnob.exe
+          publish/IndependentKnob-Setup.exe
         if-no-files-found: error
 
   # Only for version tags, and only after both builds and their tests passed.
@@ -77,7 +86,7 @@ jobs:
 
     - name: Create the release
       run: >-
-        gh release create "$GITHUB_REF_NAME" IndependentKnob.exe
+        gh release create "$GITHUB_REF_NAME" IndependentKnob.exe IndependentKnob-Setup.exe
         --repo "$GITHUB_REPOSITORY" --title "IndependentKnob $GITHUB_REF_NAME" --generate-notes
       env:
         GH_TOKEN: ${{ github.token }}

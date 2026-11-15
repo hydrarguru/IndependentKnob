@@ -26,7 +26,10 @@ Windows only for now. Built with C#, .NET 10 and [Avalonia](https://avaloniaui.n
 
 ## Download
 
-Get `IndependentKnob.exe` from the [Releases](../../releases) page. It's a single file that runs without installing .NET: start it, and it appears in the system tray.
+Get one of these from the [Releases](../../releases) page. Neither needs .NET installed.
+
+- `IndependentKnob-Setup.exe`: installer. Installs for your user without admin rights, adds a Start menu entry, and can add a desktop shortcut.
+- `IndependentKnob.exe`: portable single file. Start it and it appears in the system tray.
 
 ## Requirements
 
